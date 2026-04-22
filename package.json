@@ -1,0 +1,40 @@
+{
+    "name": "nullnull",
+    "private": true,
+    "version": "0.1.0",
+    "description": "nullnull backend-first monorepo scaffold",
+    "packageManager": "pnpm@10.33.0",
+    "engines": {
+        "node": ">=22.0.0",
+        "pnpm": ">=10.0.0"
+    },
+    "scripts": {
+        "prepare": "husky",
+        "lint": "eslint .",
+        "lint:fix": "eslint . --fix",
+        "format": "prettier . --write",
+        "format:check": "prettier . --check",
+        "typecheck": "tsc --noEmit",
+        "verify": "pnpm lint && pnpm typecheck && pnpm format:check"
+    },
+    "lint-staged": {
+        "*.{js,cjs,mjs,ts,cts,mts,json,md,yml,yaml}": [
+            "prettier --write"
+        ],
+        "*.{js,cjs,mjs,ts,cts,mts}": [
+            "eslint --fix"
+        ]
+    },
+    "devDependencies": {
+        "@eslint/js": "^9.25.1",
+        "@types/node": "^22.15.3",
+        "eslint": "^9.25.1",
+        "eslint-config-prettier": "^10.1.2",
+        "globals": "^16.0.0",
+        "husky": "^9.1.7",
+        "lint-staged": "^15.5.0",
+        "prettier": "^3.5.3",
+        "typescript": "^5.8.3",
+        "typescript-eslint": "^8.30.1"
+    }
+}
