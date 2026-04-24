@@ -6,6 +6,7 @@
 
 - `specs/`: 기능 요구사항, 도메인 계약, 설계 원칙
 - `exec-plans/`: 진행 중 작업 계획, 완료 기록, 기술 부채
+- `conventions.md`: 커밋/PR 작성 규칙
 
 ## Update Rules
 
