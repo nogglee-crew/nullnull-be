@@ -10,6 +10,7 @@
     },
     "scripts": {
         "prepare": "husky",
+        "postinstall": "prisma generate",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier . --write",
