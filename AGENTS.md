@@ -26,6 +26,7 @@
 ## Docs Index
 
 - [docs/README.md](docs/README.md)
+- [docs/conventions.md](docs/conventions.md)
 - [docs/specs/index.md](docs/specs/index.md)
 - [docs/exec-plans/README.md](docs/exec-plans/README.md)
 - [docs/SECURITY.md](docs/SECURITY.md)
