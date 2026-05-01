@@ -1,0 +1,44 @@
+model User {
+  userId    String   @id @map("user_id") @db.Uuid
+  nickname  String   @db.VarChar(50)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
+
+  rooms        Room[]
+  participants Participant[]
+  consents     UserConsent[]
+
+  @@map("users")
+}
+
+model PolicyVersion {
+  policyVersionId BigInt     @id @default(autoincrement()) @map("policy_version_id")
+  policyType      PolicyType @map("policy_type")
+  version         String     @db.VarChar(20)
+  url             String     @db.VarChar(500)
+  isLatest        Boolean    @default(false) @map("is_latest")
+  effectiveAt     DateTime   @map("effective_at") @db.Timestamp(6)
+  createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamp(6)
+
+  termsConsents   UserConsent[] @relation("TermsPolicyVersion")
+  privacyConsents UserConsent[] @relation("PrivacyPolicyVersion")
+
+  @@unique([policyType, version])
+  @@index([policyType, isLatest])
+  @@map("policy_versions")
+}
+
+model UserConsent {
+  consentId        BigInt   @id @default(autoincrement()) @map("consent_id")
+  userId           String   @map("user_id") @db.Uuid
+  termsVersionId   BigInt   @map("terms_version_id")
+  privacyVersionId BigInt   @map("privacy_version_id")
+  agreedAt         DateTime @map("agreed_at") @db.Timestamp(6)
+
+  user           User          @relation(fields: [userId], references: [userId])
+  termsVersion   PolicyVersion @relation("TermsPolicyVersion", fields: [termsVersionId], references: [policyVersionId])
+  privacyVersion PolicyVersion @relation("PrivacyPolicyVersion", fields: [privacyVersionId], references: [policyVersionId])
+
+  @@index([userId])
+  @@map("user_consents")
+}

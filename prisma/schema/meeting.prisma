@@ -1,0 +1,60 @@
+model TimeOption {
+  timeOptionId    BigInt   @id @default(autoincrement()) @map("time_option_id")
+  roomId          BigInt   @map("room_id")
+  startAt         DateTime @map("start_at") @db.Timestamp(6)
+  endAt           DateTime @map("end_at") @db.Timestamp(6)
+  availableCount  Int      @map("available_count")
+  durationMinutes Int      @map("duration_minutes")
+  rank            Int
+
+  room     Room      @relation(fields: [roomId], references: [roomId])
+  meetings Meeting[]
+
+  @@unique([roomId, rank])
+  @@map("time_options")
+}
+
+model PlaceOption {
+  placeOptionId   BigInt  @id @default(autoincrement()) @map("place_option_id")
+  roomId          BigInt  @map("room_id")
+  placeName       String  @map("place_name") @db.VarChar(100)
+  latitude        Decimal @db.Decimal(10, 7)
+  longitude       Decimal @db.Decimal(10, 7)
+  address         String  @db.VarChar(500)
+  averageDistance Int?    @map("average_distance")
+  totalDistance   Int?    @map("total_distance")
+  score           Int?
+  rank            Int
+
+  room     Room      @relation(fields: [roomId], references: [roomId])
+  meetings Meeting[]
+
+  @@unique([roomId, rank])
+  @@map("place_options")
+}
+
+model Meeting {
+  meetingId     BigInt   @id @default(autoincrement()) @map("meeting_id")
+  roomId        BigInt   @unique @map("room_id")
+  timeOptionId  BigInt   @map("time_option_id")
+  placeOptionId BigInt?  @map("place_option_id")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  room        Room         @relation(fields: [roomId], references: [roomId])
+  timeOption  TimeOption   @relation(fields: [timeOptionId], references: [timeOptionId])
+  placeOption PlaceOption? @relation(fields: [placeOptionId], references: [placeOptionId])
+
+  @@map("meetings")
+}
+
+model Closure {
+  closureId        BigInt           @id @default(autoincrement()) @map("closure_id")
+  roomId           BigInt           @unique @map("room_id")
+  closedFromStatus ClosedFromStatus @map("closed_from_status")
+  closedTrigger    ClosedTrigger    @map("closed_trigger")
+  closedAt         DateTime         @map("closed_at") @db.Timestamp(6)
+
+  room Room @relation(fields: [roomId], references: [roomId])
+
+  @@map("closures")
+}

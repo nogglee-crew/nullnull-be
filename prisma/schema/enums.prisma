@@ -1,0 +1,46 @@
+enum PolicyType {
+  TERMS
+  PRIVACY
+}
+
+enum RoomStatus {
+  COLLECTING
+  READY
+  CONFIRMED
+  CLOSED
+}
+
+enum RoomCategory {
+  MEAL
+  CAFE
+  DRINK
+  STUDY
+  MEETING
+  EXERCISE
+  GAME
+  PARTY
+  ETC
+}
+
+enum ParticipantRole {
+  HOST
+  MEMBER
+}
+
+enum ParticipantStatus {
+  JOINED
+  SUBMITTED
+  DECLINED
+}
+
+enum ClosedFromStatus {
+  COLLECTING
+  READY
+  CONFIRMED
+}
+
+enum ClosedTrigger {
+  MANUAL
+  EXPIRED
+  REACHED
+}
