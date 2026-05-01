@@ -26,6 +26,7 @@ dist-ssr
 # private
 .env
 .env.*
+!.env.example
 
 # tooling
 .eslintcache
@@ -74,6 +75,7 @@ lerna-debug.log*
 .env.test.local
 .env.production.local
 .env.local
+!.env.example
 
 # temp directory
 .temp
