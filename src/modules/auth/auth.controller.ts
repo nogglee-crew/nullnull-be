@@ -1,5 +1,5 @@
 import { Controller, HttpCode, Post, Headers } from '@nestjs/common';
-import { type AuthService } from './auth.service.js';
+import { AuthService } from './auth.service.js';
 import { ApiAuthConsent, ApiAuthSync } from './auth.swagger.js';
 
 @Controller('auth')
