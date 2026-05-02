@@ -6,7 +6,7 @@ import {
     type SupabaseClient,
     type User as SupabaseUser,
 } from '@supabase/supabase-js';
-import { type PrismaService } from '../../database/prisma.service.js';
+import { PrismaService } from '../../database/prisma.service.js';
 import {
     AuthConsentInternalServerError,
     AuthSyncInternalServerError,
