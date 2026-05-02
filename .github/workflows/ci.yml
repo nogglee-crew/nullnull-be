@@ -1,6 +1,7 @@
 name: CI
 
 on:
+    push:
     pull_request:
 
 permissions:
@@ -42,6 +43,9 @@ jobs:
 
             - name: Typecheck
               run: pnpm typecheck
+
+            - name: Generate OpenAPI
+              run: pnpm generate:openapi
 
             - name: Format check
               run: pnpm format:check

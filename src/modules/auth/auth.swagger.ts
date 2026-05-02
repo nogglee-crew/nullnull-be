@@ -115,19 +115,19 @@ export function ApiAuthSync() {
         }),
         ApiExtraModels(AuthSyncResponseDto, ErrorResponseDto),
         ApiOkResponse({
-            description: '사용자 동기화 성공',
+            description: '로그인 / 심리스 하이브리드 인증 성공',
             schema: responseSchema(AuthSyncResponseDto, AUTH_SYNC_OK_EXAMPLE),
         }),
         ApiBadRequestResponse({
-            description: '유효하지 않은 요청입니다.',
+            description: '유효하지 않은 요청',
             schema: responseSchema(ErrorResponseDto, AUTH_SYNC_BAD_REQUEST_EXAMPLE),
         }),
         ApiUnauthorizedResponse({
-            description: '인증 정보가 유효하지 않습니다.',
+            description: '유효하지 않은 인증 정보',
             schema: responseSchema(ErrorResponseDto, AUTH_SYNC_UNAUTHORIZED_EXAMPLE),
         }),
         ApiInternalServerErrorResponse({
-            description: '사용자 동기화 중 오류가 발생했습니다.',
+            description: '서버 오류',
             schema: responseSchema(ErrorResponseDto, AUTH_SYNC_INTERNAL_SERVER_ERROR_EXAMPLE),
         }),
     );
@@ -143,15 +143,15 @@ export function ApiAuthConsent() {
             schema: responseSchema(AuthConsentResponseDto, AUTH_CONSENT_OK_EXAMPLE),
         }),
         ApiUnauthorizedResponse({
-            description: '인증 정보가 유효하지 않습니다.',
+            description: '유효하지 않은 인증 정보',
             schema: responseSchema(ErrorResponseDto, AUTH_CONSENT_UNAUTHORIZED_EXAMPLE),
         }),
         ApiNotFoundResponse({
-            description: '최신 약관 정보를 찾을 수 없습니다.',
+            description: '최신 약관 정보 없음',
             schema: responseSchema(ErrorResponseDto, AUTH_CONSENT_POLICY_NOT_FOUND_EXAMPLE),
         }),
         ApiInternalServerErrorResponse({
-            description: '약관 동의 처리 중 오류가 발생했습니다.',
+            description: '서버 오류',
             schema: responseSchema(ErrorResponseDto, AUTH_CONSENT_INTERNAL_SERVER_ERROR_EXAMPLE),
         }),
     );
