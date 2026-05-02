@@ -1,0 +1,426 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/auth/sync": {
+      "post": {
+        "operationId": "AuthController_sync",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cookie",
+            "required": false,
+            "in": "header",
+            "description": "선택값. 비회원 참여 이력이 있으면 `participant_uuid_{roomSlug}` 쿠키가 자동 전송됩니다.",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "사용자 동기화 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthSyncResponseDto"
+                    }
+                  ],
+                  "example": {
+                    "statusCode": 200,
+                    "timestamp": "2026-03-18T06:51:01.242Z",
+                    "path": "/auth/sync",
+                    "message": "사용자 동기화가 완료되었습니다.",
+                    "data": {
+                      "user": {
+                        "userId": "8f7c2a1e-0000-0000-0000-000000000000",
+                        "nickname": "노글리"
+                      },
+                      "consentRequired": true
+                    },
+                    "error": null
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "유효하지 않은 요청입니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponseDto"
+                    }
+                  ],
+                  "example": {
+                    "statusCode": 400,
+                    "timestamp": "2026-03-18T06:51:10.317Z",
+                    "path": "/auth/sync",
+                    "message": "유효하지 않은 요청입니다.",
+                    "data": null,
+                    "error": "INVALID_REQUEST"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 정보가 유효하지 않습니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponseDto"
+                    }
+                  ],
+                  "example": {
+                    "statusCode": 401,
+                    "timestamp": "2026-03-18T06:51:12.102Z",
+                    "path": "/auth/sync",
+                    "message": "인증 정보가 유효하지 않습니다.",
+                    "data": null,
+                    "error": "UNAUTHORIZED"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "사용자 동기화 중 오류가 발생했습니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponseDto"
+                    }
+                  ],
+                  "example": {
+                    "statusCode": 500,
+                    "timestamp": "2026-03-18T06:51:15.442Z",
+                    "path": "/auth/sync",
+                    "message": "사용자 동기화 중 오류가 발생했습니다.",
+                    "data": null,
+                    "error": "INTERNAL_SERVER_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "사용자 동기화",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/auth/consent": {
+      "post": {
+        "operationId": "AuthController_consent",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "약관 동의 성공",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/AuthConsentResponseDto"
+                    }
+                  ],
+                  "example": {
+                    "statusCode": 200,
+                    "timestamp": "2026-05-02T00:00:00.000Z",
+                    "path": "/auth/consent",
+                    "message": "약관 동의가 완료되었습니다.",
+                    "data": {
+                      "consentRequired": false
+                    },
+                    "error": null
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "인증 정보가 유효하지 않습니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponseDto"
+                    }
+                  ],
+                  "example": {
+                    "statusCode": 401,
+                    "timestamp": "2026-05-02T00:00:00.000Z",
+                    "path": "/auth/consent",
+                    "message": "인증 정보가 유효하지 않습니다.",
+                    "data": null,
+                    "error": "UNAUTHORIZED"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "최신 약관 정보를 찾을 수 없습니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponseDto"
+                    }
+                  ],
+                  "example": {
+                    "statusCode": 404,
+                    "timestamp": "2026-05-02T00:00:00.000Z",
+                    "path": "/auth/consent",
+                    "message": "최신 약관 정보를 찾을 수 없습니다.",
+                    "data": null,
+                    "error": "POLICY_VERSION_NOT_FOUND"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "약관 동의 처리 중 오류가 발생했습니다.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/ErrorResponseDto"
+                    }
+                  ],
+                  "example": {
+                    "statusCode": 500,
+                    "timestamp": "2026-05-02T00:00:00.000Z",
+                    "path": "/auth/consent",
+                    "message": "약관 동의 처리 중 오류가 발생했습니다.",
+                    "data": null,
+                    "error": "INTERNAL_SERVER_ERROR"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "약관 동의",
+        "tags": [
+          "Auth"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "NULLNULL API",
+    "description": "NULLNULL backend API documentation",
+    "version": "1.0.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "bearer": {
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "type": "http"
+      }
+    },
+    "schemas": {
+      "AuthUserDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "example": "eb50a73f-785f-49ce-887b-5f0bba67a1e3"
+          },
+          "nickname": {
+            "type": "string",
+            "example": "김개발"
+          }
+        },
+        "required": [
+          "userId",
+          "nickname"
+        ]
+      },
+      "AuthSyncDataDto": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/AuthUserDto"
+          },
+          "consentRequired": {
+            "type": "boolean",
+            "example": true
+          }
+        },
+        "required": [
+          "user",
+          "consentRequired"
+        ]
+      },
+      "AuthSyncResponseDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 200
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-05-02T07:45:27.083Z"
+          },
+          "path": {
+            "type": "string",
+            "example": "/auth/sync"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청이 성공적으로 처리되었습니다."
+          },
+          "error": {
+            "type": "string",
+            "example": null,
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthSyncDataDto"
+          }
+        },
+        "required": [
+          "statusCode",
+          "timestamp",
+          "path",
+          "message",
+          "error",
+          "data"
+        ]
+      },
+      "ErrorResponseDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 400
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-03-18T06:51:10.317Z"
+          },
+          "path": {
+            "type": "string",
+            "example": "/auth/sync"
+          },
+          "message": {
+            "type": "string",
+            "example": "유효하지 않은 요청입니다."
+          },
+          "data": {
+            "type": "object",
+            "example": null,
+            "nullable": true
+          },
+          "error": {
+            "type": "string",
+            "example": "INVALID_REQUEST"
+          }
+        },
+        "required": [
+          "statusCode",
+          "timestamp",
+          "path",
+          "message",
+          "data",
+          "error"
+        ]
+      },
+      "AuthConsentDataDto": {
+        "type": "object",
+        "properties": {
+          "consentRequired": {
+            "type": "boolean",
+            "example": false
+          }
+        },
+        "required": [
+          "consentRequired"
+        ]
+      },
+      "AuthConsentResponseDto": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "number",
+            "example": 200
+          },
+          "timestamp": {
+            "type": "string",
+            "example": "2026-05-02T07:45:27.083Z"
+          },
+          "path": {
+            "type": "string",
+            "example": "/auth/sync"
+          },
+          "message": {
+            "type": "string",
+            "example": "요청이 성공적으로 처리되었습니다."
+          },
+          "error": {
+            "type": "string",
+            "example": null,
+            "nullable": true
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuthConsentDataDto"
+          }
+        },
+        "required": [
+          "statusCode",
+          "timestamp",
+          "path",
+          "message",
+          "error",
+          "data"
+        ]
+      }
+    }
+  }
+}

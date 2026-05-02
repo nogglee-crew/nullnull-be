@@ -1,20 +1,17 @@
-import { Controller, Get, Inject } from '@nestjs/common';
-import { AppService } from './app.service.js';
+import { Controller, Get } from '@nestjs/common';
+import { ApiExcludeController } from '@nestjs/swagger';
+import { type AppService } from './app.service.js';
 
+@ApiExcludeController()
 @Controller()
 export class AppController {
-    constructor(
-        @Inject(AppService)
-        private readonly appService: AppService,
-    ) {}
-
-    @Get('')
-    getHello(): string {
-        return this.appService.getHello();
-    }
+    constructor(private readonly appService: AppService) {}
 
     @Get('health')
     getHealth() {
-        return this.appService.getHealth();
+        return {
+            message: '헬스 체크가 완료되었습니다.',
+            data: this.appService.getHealth(),
+        };
     }
 }
