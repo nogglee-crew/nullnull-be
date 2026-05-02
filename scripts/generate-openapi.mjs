@@ -1,21 +1,35 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { NestFactory } from '@nestjs/core';
-import { SwaggerModule } from '@nestjs/swagger';
-import { SwaggerAppModule } from '../dist/swagger/swagger.module.js';
-import { createSwaggerConfig } from '../dist/swagger.js';
 
 async function main() {
+    console.log('[generate-openapi] start');
+    console.log('[generate-openapi] importing modules');
+    const [{ NestFactory }, { SwaggerModule }, { SwaggerAppModule }, { createSwaggerConfig }] =
+        await Promise.all([
+            import('@nestjs/core'),
+            import('@nestjs/swagger'),
+            import('../dist/swagger/swagger.module.js'),
+            import('../dist/swagger.js'),
+        ]);
+    console.log('[generate-openapi] modules imported');
+    console.log('[generate-openapi] creating Nest app');
     const app = await NestFactory.create(SwaggerAppModule, { logger: false });
+    console.log('[generate-openapi] Nest app created');
 
+    console.log('[generate-openapi] creating Swagger document');
     const document = SwaggerModule.createDocument(app, createSwaggerConfig());
+    console.log('[generate-openapi] Swagger document created', Object.keys(document));
 
+    console.log('[generate-openapi] writing openapi.json');
     mkdirSync('src/generated/openapi', { recursive: true });
     writeFileSync('src/generated/openapi/openapi.json', JSON.stringify(document, null, 2));
+    console.log('[generate-openapi] openapi.json written');
 
     await app.close();
+    console.log('[generate-openapi] done');
 }
 
 main().catch((error) => {
-    console.error('[generate-openapi] failed:', error instanceof Error ? error.message : error);
-    process.exitCode = 1;
+    console.error('[generate-openapi] failed');
+    console.error(error instanceof Error ? error.stack : error);
+    process.exit(1);
 });
