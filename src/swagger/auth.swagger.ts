@@ -11,7 +11,11 @@ import {
     getSchemaPath,
 } from '@nestjs/swagger';
 import { applyDecorators } from '@nestjs/common';
-import { AuthConsentResponseDto, AuthSyncResponseDto, ErrorResponseDto } from './auth.dto.js';
+import {
+    AuthConsentResponseDto,
+    AuthSyncResponseDto,
+    ErrorResponseDto,
+} from '../modules/auth/auth.dto.js';
 
 export const AUTH_SYNC_OK_EXAMPLE = {
     statusCode: 200,
