@@ -44,8 +44,11 @@ jobs:
             - name: Typecheck
               run: pnpm typecheck
 
+            - name: Build
+              run: pnpm build
+
             - name: Generate OpenAPI
-              run: pnpm generate:openapi
+              run: node scripts/generate-openapi.mjs
 
             - name: Format check
               run: pnpm format:check
