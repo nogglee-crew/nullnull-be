@@ -13,6 +13,7 @@
         "prepare": "husky",
         "postinstall": "prisma generate",
         "build": "nest build",
+        "generate:openapi": "pnpm build && node scripts/generate-openapi.mjs",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix",
         "format": "prettier . --write",
@@ -21,7 +22,8 @@
         "typecheck": "tsc --noEmit",
         "verify": "pnpm lint && pnpm typecheck && pnpm format:check",
         "start:dev": "nest start --watch",
-        "prisma:check": "prisma format && prisma validate"
+        "prisma:check": "prisma format && prisma validate",
+        "auth:test-token": "node --env-file=.env scripts/get-test-token.mjs"
     },
     "lint-staged": {
         "*.{js,cjs,mjs,ts,cts,mts,json,md,yml,yaml}": [
@@ -55,13 +57,16 @@
         "@nestjs/config": "^4.0.4",
         "@nestjs/core": "^11.1.19",
         "@nestjs/platform-express": "^11.1.19",
+        "@nestjs/swagger": "^11.4.2",
         "@prisma/adapter-pg": "^7.8.0",
         "@prisma/client": "^7.8.0",
         "@prisma/client-runtime-utils": "^7.8.0",
+        "@supabase/supabase-js": "^2.105.1",
         "class-transformer": "^0.5.1",
         "class-validator": "^0.15.1",
         "pg": "^8.20.0",
         "reflect-metadata": "^0.2.2",
-        "rxjs": "^7.8.2"
+        "rxjs": "^7.8.2",
+        "swagger-ui-express": "^5.0.1"
     }
 }
