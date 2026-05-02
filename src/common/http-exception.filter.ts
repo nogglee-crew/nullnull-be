@@ -1,4 +1,10 @@
-import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
+import {
+    type ArgumentsHost,
+    Catch,
+    type ExceptionFilter,
+    HttpException,
+    HttpStatus,
+} from '@nestjs/common';
 import { ErrorCode } from './error-codes.js';
 import { createApiResponse } from './api-response.js';
 
@@ -67,8 +73,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
     // INFO: 커스텀 error code가 없을 때 HTTP 상태코드 기반 기본 에러 코드를 반환한다.
     private resolveErrorCode(statusCode: number): ErrorCode {
         const statusName = HttpStatus[statusCode];
-        if (typeof statusName === 'string' && statusName in ErrorCode)
+        if (typeof statusName === 'string' && statusName in ErrorCode) {
             return statusName as ErrorCode;
+        }
         return ErrorCode.INTERNAL_SERVER_ERROR;
     }
 }

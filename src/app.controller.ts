@@ -1,11 +1,14 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, Inject } from '@nestjs/common';
 import { ApiExcludeController } from '@nestjs/swagger';
 import { AppService } from './app.service.js';
 
 @ApiExcludeController()
 @Controller()
 export class AppController {
-    constructor(private readonly appService: AppService) {}
+    constructor(
+        @Inject(AppService)
+        private readonly appService: AppService,
+    ) {}
 
     @Get('health')
     getHealth() {

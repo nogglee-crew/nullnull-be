@@ -1,10 +1,13 @@
-import { Controller, HttpCode, Post, Headers } from '@nestjs/common';
+import { Controller, Headers, HttpCode, Inject, Post } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { ApiAuthConsent, ApiAuthSync } from './auth.swagger.js';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) {}
+    constructor(
+        @Inject(AuthService)
+        private readonly authService: AuthService,
+    ) {}
 
     @Post('sync')
     @HttpCode(200)
