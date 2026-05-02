@@ -1,11 +1,11 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
-import { AppModule } from '../dist/app.module.js';
+import { SwaggerAppModule } from '../dist/swagger/swagger.module.js';
 import { createSwaggerConfig } from '../dist/swagger.js';
 
 async function main() {
-    const app = await NestFactory.create(AppModule, { logger: false });
+    const app = await NestFactory.create(SwaggerAppModule, { logger: false });
 
     const document = SwaggerModule.createDocument(app, createSwaggerConfig());
 
