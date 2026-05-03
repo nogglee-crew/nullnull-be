@@ -1,0 +1,75 @@
+model Room {
+  roomId        BigInt       @id @default(autoincrement()) @map("room_id")
+  hostId        String       @map("host_id") @db.Uuid
+  slug          String       @unique @db.VarChar(50)
+  name          String       @db.VarChar(50)
+  description   String?      @db.VarChar(500)
+  status        RoomStatus   @default(COLLECTING)
+  category      RoomCategory @default(MEAL)
+  dateStart     DateTime     @map("date_start") @db.Date
+  dateEnd       DateTime     @map("date_end") @db.Date
+  availableDays Json         @map("available_days")
+  timeStart     DateTime     @map("time_start") @db.Time(6)
+  timeEnd       DateTime     @map("time_end") @db.Time(6)
+  deadlineAt    DateTime     @map("deadline_at") @db.Timestamp(6)
+  collectOrigin Boolean      @default(false) @map("collect_origin")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
+
+  host         User          @relation(fields: [hostId], references: [userId])
+  participants Participant[]
+  timeOptions  TimeOption[]
+  placeOptions PlaceOption[]
+  meeting      Meeting?
+  closure      Closure?
+
+  @@index([hostId])
+  @@map("rooms")
+}
+
+model Participant {
+  participantId   BigInt            @id @default(autoincrement()) @map("participant_id")
+  roomId          BigInt            @map("room_id")
+  userId          String?           @map("user_id") @db.Uuid
+  participantUuid String            @unique @default(uuid()) @map("participant_uuid") @db.Uuid
+  role            ParticipantRole   @default(MEMBER)
+  status          ParticipantStatus @default(JOINED)
+  nickname        String            @db.VarChar(50)
+  decisionAt      DateTime?         @map("decision_at") @db.Timestamp(6)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
+
+  room         Room          @relation(fields: [roomId], references: [roomId])
+  user         User?         @relation(fields: [userId], references: [userId])
+  origin       Origin?
+  blockedSlots BlockedSlot[]
+
+  @@index([roomId])
+  @@index([userId])
+  @@map("participants")
+}
+
+model Origin {
+  originId      BigInt  @id @default(autoincrement()) @map("origin_id")
+  participantId BigInt  @unique @map("participant_id")
+  latitude      Decimal @db.Decimal(10, 7)
+  longitude     Decimal @db.Decimal(10, 7)
+  address       String  @db.VarChar(500)
+  placeName     String? @map("place_name") @db.VarChar(100)
+
+  participant Participant @relation(fields: [participantId], references: [participantId])
+
+  @@map("origins")
+}
+
+model BlockedSlot {
+  blockedSlotId BigInt   @id @default(autoincrement()) @map("blocked_slot_id")
+  participantId BigInt   @map("participant_id")
+  date          DateTime @db.Date
+  slotIndex     Int      @map("slot_index")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+
+  participant Participant @relation(fields: [participantId], references: [participantId])
+
+  @@unique([participantId, date, slotIndex])
+  @@index([participantId, date])
+  @@map("blocked_slots")
+}
