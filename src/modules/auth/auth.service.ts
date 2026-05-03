@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Prisma, User } from '../../generated/prisma/client.js';
+import type { PrismaClient, User } from '../../generated/prisma/client.js';
 import { PolicyType } from '../../generated/prisma/client.js';
 import {
     createClient,
@@ -16,7 +16,12 @@ import {
 } from './auth.errors.js';
 import { AppException } from '../../common/app.exception.js';
 
-type ConsentLookupClient = Pick<Prisma.TransactionClient, 'policyVersion' | 'userConsent'>;
+type TransactionClient = Omit<
+    PrismaClient,
+    '$connect' | '$disconnect' | '$on' | '$transaction' | '$extends'
+>;
+
+type ConsentLookupClient = Pick<TransactionClient, 'policyVersion' | 'userConsent'>;
 
 interface AuthSyncResult {
     user: User;
@@ -188,10 +193,7 @@ export class AuthService {
         return user;
     }
 
-    private async findOrCreateUser(
-        tx: Prisma.TransactionClient,
-        authUser: SupabaseUser,
-    ): Promise<User> {
+    private async findOrCreateUser(tx: TransactionClient, authUser: SupabaseUser): Promise<User> {
         const existingUser = await tx.user.findUnique({
             where: {
                 userId: authUser.id,
