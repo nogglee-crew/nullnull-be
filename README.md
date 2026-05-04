@@ -46,6 +46,6 @@ curl http://localhost:4000/health
 
 ### 문서
 
-- 작업 전: [AGENTS.md](/Users/nogglee/Developer/nullnull-be/AGENTS.md)
-- 문서 색인: [docs/README.md](/Users/nogglee/Developer/nullnull-be/docs/README.md)
-- 컨벤션: [docs/conventions.md](/Users/nogglee/Developer/nullnull-be/docs/conventions.md)
+- 작업 전: [AGENTS.md](AGENTS.md)
+- 문서 색인: [docs/README.md](docs/README.md)
+- 컨벤션: [docs/conventions/README.md](docs/conventions/README.md)

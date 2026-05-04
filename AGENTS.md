@@ -1,37 +1,78 @@
 # AGENTS.md
 
-이 저장소는 에이전트가 읽고 작업하기 쉬운 문서 구조를 우선한다.
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
 ## Start Here
 
-1. 현재 작업 목표를 확인한다.
-2. [ARCHITECTURE.md](ARCHITECTURE.md)를 읽고 시스템 경계를 파악한다.
-3. 아래 `docs/` 색인에서 필요한 문서만 펼쳐 읽는다.
-4. 구현 선택이 필요한 경우 요구사항 문서와 설계 문서를 먼저 확인하고, 미정 사항은 실행 계획에 남긴다.
+1. Confirm the current task goal.
+2. Read [ARCHITECTURE.md](ARCHITECTURE.md) to understand module boundaries and layer responsibilities.
+3. Use [docs/README.md](docs/README.md) to find only the documents relevant to the task.
+4. When implementation choices are required, check the relevant requirements and design docs first.
+5. For complex work, follow [docs/exec-plans/README.md](docs/exec-plans/README.md) and keep unresolved decisions in the execution plan.
 
-## Source Of Truth
+## 1. Think Before Coding
 
-- 제품 요구사항과 설계 기준: `docs/specs/`
-- 실행 중인 작업과 의사결정 로그: `docs/exec-plans/`
-- 보안 기준: `docs/SECURITY.md`
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
 
-## Working Rules
+Before implementing:
 
-- 구현 전 요구사항과 제약을 먼저 확인한다.
-- 기술 스택이 미확정이면 프레임워크 고유 패턴 대신 계층 책임과 계약을 먼저 설계한다.
-- 변경 중 새 규칙이 생기면 코드만 수정하지 말고 관련 문서도 함께 갱신한다.
-- 복잡한 작업은 `docs/exec-plans/active/` 아래 계획 파일을 만들고 진행한다.
-- 완료된 계획은 `docs/exec-plans/completed/`로 이동한다.
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
 
-## Docs Index
+## 2. Simplicity First
 
-- [docs/README.md](docs/README.md)
-- [docs/conventions.md](docs/conventions.md)
-- [docs/specs/index.md](docs/specs/index.md)
-- [docs/exec-plans/README.md](docs/exec-plans/README.md)
-- [docs/SECURITY.md](docs/SECURITY.md)
+**Minimum code that solves the problem. Nothing speculative.**
 
-## When Information Is Missing
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
 
-- 사람의 머릿속이나 외부 채팅에만 있는 정보는 없는 것으로 취급한다.
-- 문서와 코드가 충돌하면 실행 계획에 충돌 사실을 먼저 기록한 뒤 해결한다.
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
