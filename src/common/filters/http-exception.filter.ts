@@ -5,7 +5,7 @@ import {
     HttpException,
     HttpStatus,
 } from '@nestjs/common';
-import { ErrorCode } from './error-codes.js';
+import { ErrorCode } from '../exception/error-codes.js';
 
 interface HttpExceptionResponseBody {
     statusCode?: number;
