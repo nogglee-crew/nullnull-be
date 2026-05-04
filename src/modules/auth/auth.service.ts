@@ -14,7 +14,7 @@ import {
     InvalidAuthTokenError,
     PolicyVersionNotFoundError,
 } from './auth.errors.js';
-import { AppException } from '../../common/app.exception.js';
+import { AppException } from '../../common/exception/app.exception.js';
 
 type UserLookupClient = Pick<PrismaService, 'user'>;
 type ConsentLookupClient = Pick<PrismaService, 'policyVersion' | 'userConsent'>;
@@ -36,6 +36,21 @@ export class AuthService {
         private readonly prisma: PrismaService,
     ) {}
 
+    async validateTokenAndGetUser(authorizationHeader: string | undefined): Promise<User> {
+        const accessToken = this.extractBearerToken(authorizationHeader);
+        const authUser = await this.verifyAccessToken(accessToken);
+
+        const user = await this.prisma.user.findUnique({
+            where: { userId: authUser.id },
+        });
+
+        if (!user) {
+            throw new InvalidAuthTokenError();
+        }
+
+        return user;
+    }
+
     async syncUser(
         authorizationHeader: string | undefined,
         participantUuids: string[],
@@ -44,16 +59,14 @@ export class AuthService {
             const accessToken = this.extractBearerToken(authorizationHeader);
             const authUser = await this.verifyAccessToken(accessToken);
 
-            return this.prisma.$transaction(async (tx) => {
+            return await this.prisma.$transaction(async (tx) => {
                 const user = await this.findOrCreateUser(tx, authUser);
                 const consentRequired = await this.computeConsentRequired(tx, user.userId);
 
                 if (participantUuids.length > 0) {
                     await tx.participant.updateMany({
                         where: {
-                            participantUuid: {
-                                in: participantUuids,
-                            },
+                            participantUuid: { in: participantUuids },
                             userId: null,
                         },
                         data: {
@@ -62,16 +75,11 @@ export class AuthService {
                     });
                 }
 
-                return {
-                    user,
-                    consentRequired,
-                };
+                return { user, consentRequired };
             });
         } catch (error) {
-            if (error instanceof AppException) {
-                throw error;
-            }
-
+            if (error instanceof AppException) throw error;
+            console.error('Auth Sync Error:', error);
             throw new AuthSyncInternalServerError();
         }
     }
@@ -99,12 +107,8 @@ export class AuthService {
 
                 if (existingConsent) {
                     await tx.userConsent.update({
-                        where: {
-                            consentId: existingConsent.consentId,
-                        },
-                        data: {
-                            agreedAt: new Date(),
-                        },
+                        where: { consentId: existingConsent.consentId },
+                        data: { agreedAt: new Date() },
                     });
                 } else {
                     await tx.userConsent.create({
@@ -118,41 +122,27 @@ export class AuthService {
                 }
             });
         } catch (error) {
-            if (error instanceof AppException) {
-                throw error;
-            }
-
+            if (error instanceof AppException) throw error;
             throw new AuthConsentInternalServerError();
         }
     }
 
     extractParticipantUuids(cookieHeader: string | undefined): string[] {
-        if (!cookieHeader) {
-            return [];
-        }
+        if (!cookieHeader) return [];
 
         const values = cookieHeader
             .split(';')
             .map((entry) => entry.trim())
             .map((entry) => {
                 const separatorIndex = entry.indexOf('=');
-
-                if (separatorIndex === -1) {
-                    return null;
-                }
-
+                if (separatorIndex === -1) return null;
                 return {
                     key: entry.slice(0, separatorIndex),
                     value: decodeURIComponent(entry.slice(separatorIndex + 1)),
                 };
             })
             .filter(
-                (
-                    entry,
-                ): entry is {
-                    key: string;
-                    value: string;
-                } =>
+                (entry): entry is { key: string; value: string } =>
                     !!entry &&
                     PARTICIPANT_COOKIE_PATTERN.test(entry.key) &&
                     UUID_PATTERN.test(entry.value),
@@ -168,7 +158,6 @@ export class AuthService {
         }
 
         const [scheme, token] = authorizationHeader.split(' ');
-
         if (scheme !== 'Bearer' || !token) {
             throw new InvalidAuthSyncRequestError();
         }
@@ -191,14 +180,10 @@ export class AuthService {
 
     private async findOrCreateUser(tx: UserLookupClient, authUser: SupabaseUser): Promise<User> {
         const existingUser = await tx.user.findUnique({
-            where: {
-                userId: authUser.id,
-            },
+            where: { userId: authUser.id },
         });
 
-        if (existingUser) {
-            return existingUser;
-        }
+        if (existingUser) return existingUser;
 
         return tx.user.create({
             data: {
@@ -213,10 +198,7 @@ export class AuthService {
         userId: string,
     ): Promise<boolean> {
         const latestPolicies = await this.getLatestRequiredPolicies(tx);
-
-        if (!latestPolicies) {
-            return true;
-        }
+        if (!latestPolicies) return false;
 
         const consent = await tx.userConsent.findFirst({
             where: {
@@ -233,23 +215,16 @@ export class AuthService {
         const latestPolicies = await tx.policyVersion.findMany({
             where: {
                 isLatest: true,
-                policyType: {
-                    in: [PolicyType.TERMS, PolicyType.PRIVACY],
-                },
+                policyType: { in: [PolicyType.TERMS, PolicyType.PRIVACY] },
             },
         });
 
-        const terms = latestPolicies.find((policy) => policy.policyType === PolicyType.TERMS);
-        const privacy = latestPolicies.find((policy) => policy.policyType === PolicyType.PRIVACY);
+        const terms = latestPolicies.find((p) => p.policyType === PolicyType.TERMS);
+        const privacy = latestPolicies.find((p) => p.policyType === PolicyType.PRIVACY);
 
-        if (!terms || !privacy) {
-            return null;
-        }
+        if (!terms || !privacy) return null;
 
-        return {
-            terms,
-            privacy,
-        };
+        return { terms, privacy };
     }
 
     private resolveNickname(authUser: SupabaseUser): string {
@@ -263,20 +238,15 @@ export class AuthService {
         ];
 
         const nickname = candidates.find(
-            (value): value is string => typeof value === 'string' && value.trim().length > 0,
+            (v): v is string => typeof v === 'string' && v.trim().length > 0,
         );
 
-        if (nickname) {
-            return nickname.slice(0, 50);
-        }
-
+        if (nickname) return nickname.slice(0, 50);
         return `user-${authUser.id.slice(0, 8)}`;
     }
 
     private getSupabase(): SupabaseClient {
-        if (this.supabase) {
-            return this.supabase;
-        }
+        if (this.supabase) return this.supabase;
 
         this.supabase = createClient(
             this.requireEnv('SUPABASE_URL'),
@@ -295,11 +265,7 @@ export class AuthService {
 
     private requireEnv(key: string): string {
         const value = process.env[key];
-
-        if (!value) {
-            throw new Error(`${key} is not set`);
-        }
-
+        if (!value) throw new Error(`${key} is not set`);
         return value;
     }
 }
