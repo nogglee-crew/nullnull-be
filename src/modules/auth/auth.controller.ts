@@ -1,6 +1,8 @@
 import { Controller, Headers, HttpCode, Inject, Post } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
 import { ApiAuthConsent, ApiAuthSync } from '../../swagger/auth.swagger.js';
+import { type AuthConsentRequestDto } from './dto/req/auth-consent.request.dto.js';
+import { type AuthSyncRequestDto } from './dto/req/auth-sync.request.dto.js';
 
 @Controller('auth')
 export class AuthController {
@@ -12,12 +14,9 @@ export class AuthController {
     @Post('sync')
     @HttpCode(200)
     @ApiAuthSync()
-    async sync(
-        @Headers('authorization') authorization: string,
-        @Headers('cookie') cookie?: string,
-    ) {
-        const participantUuids = this.authService.extractParticipantUuids(cookie);
-        const result = await this.authService.syncUser(authorization, participantUuids);
+    async sync(@Headers() headers: AuthSyncRequestDto) {
+        const participantUuids = this.authService.extractParticipantUuids(headers.cookie);
+        const result = await this.authService.syncUser(headers.authorization, participantUuids);
 
         return {
             message: '사용자 동기화가 완료되었습니다.',
@@ -34,8 +33,8 @@ export class AuthController {
     @Post('consent')
     @HttpCode(200)
     @ApiAuthConsent()
-    async consent(@Headers('authorization') authorization: string) {
-        await this.authService.recordConsent(authorization);
+    async consent(@Headers() headers: AuthConsentRequestDto) {
+        await this.authService.recordConsent(headers.authorization);
 
         return {
             message: '약관 동의가 완료되었습니다.',

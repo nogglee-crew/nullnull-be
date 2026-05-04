@@ -2,8 +2,8 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module.js';
-import { HttpExceptionFilter } from './common/http-exception.filter.js';
-import { SuccessResponseInterceptor } from './common/success-response.interceptor.js';
+import { HttpExceptionFilter } from './common/exceptions/http-exception.filter.js';
+import { SuccessResponseInterceptor } from './common/responses/success-response.interceptor.js';
 import { createSwaggerConfig } from './swagger.js';
 
 async function bootstrap() {

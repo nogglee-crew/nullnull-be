@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { BaseErrorResponseDto, BaseSuccessResponseDto } from '../../app.dto.js';
+import { SuccessResponseDto } from '../../../../common/dto/response.dto.js';
 
 class AuthUserDto {
     @ApiProperty({ example: 'eb50a73f-785f-49ce-887b-5f0bba67a1e3' })
@@ -17,19 +17,7 @@ class AuthSyncDataDto {
     consentRequired!: boolean;
 }
 
-class AuthConsentDataDto {
-    @ApiProperty({ example: false })
-    consentRequired!: boolean;
-}
-
-export class AuthSyncResponseDto extends BaseSuccessResponseDto {
+export class AuthSyncResponseDto extends SuccessResponseDto {
     @ApiProperty({ type: AuthSyncDataDto })
     data!: AuthSyncDataDto;
 }
-
-export class AuthConsentResponseDto extends BaseSuccessResponseDto {
-    @ApiProperty({ type: AuthConsentDataDto })
-    data!: AuthConsentDataDto;
-}
-
-export class ErrorResponseDto extends BaseErrorResponseDto {}

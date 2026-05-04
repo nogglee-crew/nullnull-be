@@ -1,6 +1,6 @@
 import { HttpStatus } from '@nestjs/common';
-import { ErrorCode } from '../../common/error-codes.js';
-import { AppException } from '../../common/app.exception.js';
+import { ErrorCode } from '../../common/exceptions/error-codes.js';
+import { AppException } from '../../common/exceptions/app.exception.js';
 
 export class InvalidAuthSyncRequestError extends AppException {
     constructor(

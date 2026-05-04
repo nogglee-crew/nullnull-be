@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-export class BaseSuccessResponseDto {
+export class SuccessResponseDto {
     @ApiProperty({ example: 200 })
     statusCode!: number;
 
@@ -17,7 +17,7 @@ export class BaseSuccessResponseDto {
     error!: string | null;
 }
 
-export class BaseErrorResponseDto {
+export class ErrorResponseDto {
     @ApiProperty({ example: 400 })
     statusCode!: number;
 
