@@ -1,3 +1,5 @@
+# Auth Sync Backend Plan
+
 ## Summary
 
 - Goal: Supabase access token을 검증하고 서비스 사용자/참여자 이력을 동기화하는 `/auth/sync` API를 구현한다.
@@ -62,6 +64,6 @@
 
 ## Outcome
 
-- Status: In Progress
+- Status: Completed
 - Follow-up:
     - production Supabase/Render 분리 시 auth redirect URI와 환경변수 정책을 다시 정리한다.

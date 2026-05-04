@@ -12,7 +12,7 @@
     - 사용자 제공 `/auth/sync` API 스펙
 - Relevant design docs:
     - [ARCHITECTURE.md](../../../ARCHITECTURE.md)
-    - [docs/conventions.md](../../conventions.md)
+    - [docs/conventions/README.md](../../conventions/README.md)
 - Open decisions:
     - 도메인별 세부 예외 클래스는 각 모듈 구현 시점에 추가한다.
 
