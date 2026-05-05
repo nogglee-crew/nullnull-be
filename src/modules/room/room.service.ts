@@ -1,6 +1,5 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { nanoid } from 'nanoid';
-
 import { type CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
 import { type CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
 import { AppException } from '../../common/exception/app.exception.js';

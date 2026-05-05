@@ -8,10 +8,11 @@ import {
     HttpStatus,
     HttpCode,
     Req,
+    Inject,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
-import { type RoomService } from './room.service.js';
+import { RoomService } from './room.service.js';
 import { type CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
 import { CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
 import CustomResponse from '../../common/response/custom-response.js';
@@ -26,7 +27,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 @UseInterceptors(SuccessResponseInterceptor)
 @UseFilters(HttpExceptionFilter)
 export class RoomController {
-    constructor(private readonly roomService: RoomService) {}
+    constructor(@Inject(RoomService) private readonly roomService: RoomService) {}
 
     @ApiOperation({
         summary: '새로운 방 생성 API',
