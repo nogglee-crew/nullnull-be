@@ -7,7 +7,6 @@ import { PrismaModule } from './database/prisma.module.js';
 import { RoomModule } from './modules/room/room.module.js';
 
 @Module({
-    controllers: [AppController],
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
@@ -16,6 +15,7 @@ import { RoomModule } from './modules/room/room.module.js';
         PrismaModule,
         RoomModule,
     ],
+    controllers: [AppController],
     providers: [AppService],
 })
 export class AppModule {}
