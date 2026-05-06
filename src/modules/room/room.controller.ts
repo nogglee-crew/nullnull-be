@@ -13,7 +13,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { RoomService } from './room.service.js';
-import { type CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
+import { CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
 import { CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
 import CustomResponse from '../../common/response/custom-response.js';
 import { SuccessResponseInterceptor } from '../../common/interceptor/success-response.interceptor.js';
