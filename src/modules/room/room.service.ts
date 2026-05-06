@@ -1,10 +1,10 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import { nanoid } from 'nanoid';
-import { type CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
-import { type CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
+import { CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
+import { CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
 import { AppException } from '../../common/exception/app.exception.js';
 import { ErrorCode } from '../../common/exception/error-codes.js';
-import { type PrismaService } from '../../database/prisma.service.js';
+import { PrismaService } from '../../database/prisma.service.js';
 import { ParticipantRole, ParticipantStatus, RoomStatus } from '../../generated/prisma/enums.js';
 import { TimeUtil } from '../../common/utils/time.util.js';
 
