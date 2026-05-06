@@ -1,8 +1,8 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { User } from '../../generated/prisma/client.js';
 import { PolicyType } from '../../generated/prisma/client.js';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
-import { type PrismaService } from '../../database/prisma.service.js';
+import { PrismaService } from '../../database/prisma.service.js';
 import { ErrorCode } from '../../common/exception/error-codes.js';
 import { AppException } from '../../common/exception/app.exception.js';
 import { type AuthSyncResponseDto } from './dto/res/auth-sync.response.dto.js';
@@ -16,7 +16,10 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 
 @Injectable()
 export class AuthService {
-    constructor(private readonly prisma: PrismaService) {}
+    constructor(
+        @Inject(PrismaService)
+        private readonly prisma: PrismaService,
+    ) {}
 
     // INFO: Supabase 인증 사용자를 동기화하고, 필요한 경우 약관 동의 여부를 반환한다.
     async syncUser(
