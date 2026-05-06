@@ -1,12 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SuccessResponseDto } from '../../../../common/dto/response.dto.js';
 
-class AuthConsentDataDto {
+export class AuthConsentResponseDto {
     @ApiProperty({ example: false })
-    consentRequired!: boolean;
-}
-
-export class AuthConsentResponseDto extends SuccessResponseDto {
-    @ApiProperty({ type: AuthConsentDataDto })
-    data!: AuthConsentDataDto;
+    consentRequired: boolean;
 }

@@ -15,3 +15,8 @@ export class AuthSyncResponseDto {
     @ApiProperty({ example: true })
     consentRequired: boolean;
 }
+
+export class AuthSyncErrorResponseDto {
+    @ApiProperty({ example: 'INVALID_REQUEST' })
+    error: string;
+}

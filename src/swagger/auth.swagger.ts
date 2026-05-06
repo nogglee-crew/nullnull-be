@@ -1,20 +1,13 @@
 import {
     ApiBadRequestResponse,
-    ApiBearerAuth,
-    ApiExtraModels,
     ApiInternalServerErrorResponse,
     ApiNotFoundResponse,
     ApiOkResponse,
-    ApiOperation,
     ApiUnauthorizedResponse,
-    getSchemaPath,
 } from '@nestjs/swagger';
 import { applyDecorators } from '@nestjs/common';
-import { AuthConsentResponseDto } from '../modules/auth/dto/res/auth-consent.response.dto.js';
-import { AuthSyncResponseDto } from '../modules/auth/dto/res/auth-sync.response.dto.js';
-import { ErrorResponseDto } from '../common/dto/response.dto.js';
 
-export const AUTH_SYNC_BAD_REQUEST_EXAMPLE = {
+export const AUTH_SYNC_BAD_REQUEST = {
     statusCode: 400,
     timestamp: '2026-03-18T06:51:10.317Z',
     path: '/auth/sync',
@@ -23,7 +16,7 @@ export const AUTH_SYNC_BAD_REQUEST_EXAMPLE = {
     error: 'INVALID_REQUEST',
 };
 
-export const AUTH_SYNC_UNAUTHORIZED_EXAMPLE = {
+export const AUTH_SYNC_UNAUTHORIZED = {
     statusCode: 401,
     timestamp: '2026-03-18T06:51:12.102Z',
     path: '/auth/sync',
@@ -32,7 +25,7 @@ export const AUTH_SYNC_UNAUTHORIZED_EXAMPLE = {
     error: 'UNAUTHORIZED',
 };
 
-export const AUTH_SYNC_INTERNAL_SERVER_ERROR_EXAMPLE = {
+export const AUTH_SYNC_INTERNAL_SERVER_ERROR = {
     statusCode: 500,
     timestamp: '2026-03-18T06:51:15.442Z',
     path: '/auth/sync',
@@ -41,7 +34,24 @@ export const AUTH_SYNC_INTERNAL_SERVER_ERROR_EXAMPLE = {
     error: 'INTERNAL_SERVER_ERROR',
 };
 
-export const AUTH_CONSENT_OK_EXAMPLE = {
+export function ApiAuthSyncErrorResponses() {
+    return applyDecorators(
+        ApiBadRequestResponse({
+            description: '유효하지 않은 요청',
+            schema: { example: AUTH_SYNC_BAD_REQUEST },
+        }),
+        ApiUnauthorizedResponse({
+            description: '유효하지 않은 인증 정보',
+            schema: { example: AUTH_SYNC_UNAUTHORIZED },
+        }),
+        ApiInternalServerErrorResponse({
+            description: '서버 오류',
+            schema: { example: AUTH_SYNC_INTERNAL_SERVER_ERROR },
+        }),
+    );
+}
+
+export const AUTH_CONSENT_OK = {
     statusCode: 200,
     timestamp: '2026-05-02T00:00:00.000Z',
     path: '/auth/consent',
@@ -52,7 +62,7 @@ export const AUTH_CONSENT_OK_EXAMPLE = {
     error: null,
 };
 
-export const AUTH_CONSENT_UNAUTHORIZED_EXAMPLE = {
+export const AUTH_CONSENT_UNAUTHORIZED = {
     statusCode: 401,
     timestamp: '2026-05-02T00:00:00.000Z',
     path: '/auth/consent',
@@ -61,7 +71,7 @@ export const AUTH_CONSENT_UNAUTHORIZED_EXAMPLE = {
     error: 'UNAUTHORIZED',
 };
 
-export const AUTH_CONSENT_POLICY_NOT_FOUND_EXAMPLE = {
+export const AUTH_CONSENT_POLICY_NOT_FOUND = {
     statusCode: 404,
     timestamp: '2026-05-02T00:00:00.000Z',
     path: '/auth/consent',
@@ -70,7 +80,7 @@ export const AUTH_CONSENT_POLICY_NOT_FOUND_EXAMPLE = {
     error: 'POLICY_VERSION_NOT_FOUND',
 };
 
-export const AUTH_CONSENT_INTERNAL_SERVER_ERROR_EXAMPLE = {
+export const AUTH_CONSENT_INTERNAL_SERVER_ERROR = {
     statusCode: 500,
     timestamp: '2026-05-02T00:00:00.000Z',
     path: '/auth/consent',
@@ -79,55 +89,23 @@ export const AUTH_CONSENT_INTERNAL_SERVER_ERROR_EXAMPLE = {
     error: 'INTERNAL_SERVER_ERROR',
 };
 
-function responseSchema<TModel extends new (...args: never[]) => object>(
-    model: TModel,
-    example: object,
-) {
-    return {
-        allOf: [{ $ref: getSchemaPath(model) }],
-        example,
-    };
-}
-
-export function ApiAuthSync() {
+export function ApiAuthConsentErrorResponses() {
     return applyDecorators(
-        ApiExtraModels(AuthSyncResponseDto, ErrorResponseDto),
-
-        ApiBadRequestResponse({
-            description: '유효하지 않은 요청',
-            schema: responseSchema(ErrorResponseDto, AUTH_SYNC_BAD_REQUEST_EXAMPLE),
-        }),
-        ApiUnauthorizedResponse({
-            description: '유효하지 않은 인증 정보',
-            schema: responseSchema(ErrorResponseDto, AUTH_SYNC_UNAUTHORIZED_EXAMPLE),
-        }),
-        ApiInternalServerErrorResponse({
-            description: '서버 오류',
-            schema: responseSchema(ErrorResponseDto, AUTH_SYNC_INTERNAL_SERVER_ERROR_EXAMPLE),
-        }),
-    );
-}
-
-export function ApiAuthConsent() {
-    return applyDecorators(
-        ApiOperation({ summary: '약관 동의' }),
-        ApiBearerAuth(),
-        ApiExtraModels(AuthConsentResponseDto, ErrorResponseDto),
         ApiOkResponse({
             description: '약관 동의 성공',
-            schema: responseSchema(AuthConsentResponseDto, AUTH_CONSENT_OK_EXAMPLE),
+            schema: { example: AUTH_CONSENT_OK },
         }),
         ApiUnauthorizedResponse({
             description: '유효하지 않은 인증 정보',
-            schema: responseSchema(ErrorResponseDto, AUTH_CONSENT_UNAUTHORIZED_EXAMPLE),
+            schema: { example: AUTH_CONSENT_UNAUTHORIZED },
         }),
         ApiNotFoundResponse({
             description: '최신 약관 정보 없음',
-            schema: responseSchema(ErrorResponseDto, AUTH_CONSENT_POLICY_NOT_FOUND_EXAMPLE),
+            schema: { example: AUTH_CONSENT_POLICY_NOT_FOUND },
         }),
         ApiInternalServerErrorResponse({
             description: '서버 오류',
-            schema: responseSchema(ErrorResponseDto, AUTH_CONSENT_INTERNAL_SERVER_ERROR_EXAMPLE),
+            schema: { example: AUTH_CONSENT_INTERNAL_SERVER_ERROR },
         }),
     );
 }

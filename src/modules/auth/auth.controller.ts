@@ -5,17 +5,21 @@ import {
     HttpStatus,
     Inject,
     Post,
+    Req,
     UseFilters,
     UseGuards,
     UseInterceptors,
 } from '@nestjs/common';
 import { AuthService } from './auth.service.js';
-import { ApiAuthConsent, ApiAuthSync } from '../../swagger/auth.swagger.js';
-import { type AuthConsentRequestDto } from './dto/req/auth-consent.request.dto.js';
+import {
+    ApiAuthConsentErrorResponses,
+    ApiAuthSyncErrorResponses,
+} from '../../swagger/auth.swagger.js';
 import { type AuthSyncRequestDto } from './dto/req/auth-sync.request.dto.js';
 import { ApiBearerAuth, ApiHeader, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SuccessResponseInterceptor } from '../../common/interceptor/success-response.interceptor.js';
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter.js';
+import { AuthConsentResponseDto } from './dto/res/auth-consent.response.dto.js';
 import { AuthSyncResponseDto } from './dto/res/auth-sync.response.dto.js';
 import { ApiCustomResponseDecorator } from '../../common/utils/decorators/api-custom-response.decorator.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
@@ -39,32 +43,39 @@ export class AuthController {
         description:
             '선택값. 비회원 참여 이력이 있으면 `participant_uuid_{roomSlug}` 쿠키가 자동 전송됩니다.',
     })
-    @ApiAuthSync()
     @ApiCustomResponseDecorator(AuthSyncResponseDto, {
-        statusCode: HttpStatus.OK,
         message: '사용자 동기화가 완료되었습니다.',
         path: '/auth/sync',
     })
+    @ApiAuthSyncErrorResponses()
+    @UseGuards(JwtAuthGuard)
     @HttpCode(HttpStatus.OK)
     @Post('sync')
     async sync(
+        @Req() req: any,
         @Headers() headers: AuthSyncRequestDto,
     ): Promise<CustomResponse<AuthSyncResponseDto>> {
         const participantUuids = this.authService.extractParticipantUuids(headers.cookie);
-        const result = await this.authService.syncUser(headers.authorization, participantUuids);
+        const result = await this.authService.syncUser(req.user, participantUuids);
 
         return new CustomResponse<AuthSyncResponseDto>(result, '사용자 동기화가 완료되었습니다.');
     }
 
-    @Post('consent')
+    @ApiOperation({
+        summary: '약관 동의 API',
+        description: '로그인한 사용자의 약관 동의를 기록합니다.',
+    })
     @UseGuards(JwtAuthGuard)
-    @HttpCode(200)
-    @ApiAuthConsent()
-    async consent(
-        @Headers() headers: AuthConsentRequestDto,
-    ): Promise<CustomResponse<{ consentRequired: boolean }>> {
-        await this.authService.recordConsent(headers.authorization);
+    @ApiAuthConsentErrorResponses()
+    @ApiCustomResponseDecorator(AuthConsentResponseDto, {
+        message: '약관 동의가 완료되었습니다.',
+        path: '/auth/consent',
+    })
+    @HttpCode(HttpStatus.OK)
+    @Post('consent')
+    async consent(@Req() req: any): Promise<CustomResponse<AuthConsentResponseDto>> {
+        const result = await this.authService.recordConsent(req.user);
 
-        return new CustomResponse({ consentRequired: false }, '약관 동의가 완료되었습니다.');
+        return new CustomResponse<AuthConsentResponseDto>(result, '약관 동의가 완료되었습니다.');
     }
 }
