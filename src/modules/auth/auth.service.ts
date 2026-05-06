@@ -5,18 +5,11 @@ import { type User as SupabaseUser } from '@supabase/supabase-js';
 import { type PrismaService } from '../../database/prisma.service.js';
 import { ErrorCode } from '../../common/exception/error-codes.js';
 import { AppException } from '../../common/exception/app.exception.js';
+import { type AuthSyncResponseDto } from './dto/res/auth-sync.response.dto.js';
+import { type AuthConsentResponseDto } from './dto/res/auth-consent.response.dto.js';
 
 type UserLookupClient = Pick<PrismaService, 'user'>;
 type ConsentLookupClient = Pick<PrismaService, 'policyVersion' | 'userConsent'>;
-
-interface IAuthSyncResult {
-    user: User;
-    consentRequired: boolean;
-}
-
-interface IAuthConsentResult {
-    consentRequired: boolean;
-}
 
 const PARTICIPANT_COOKIE_PATTERN = /^participant_uuid_[A-Za-z0-9-]+$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -26,14 +19,18 @@ export class AuthService {
     constructor(private readonly prisma: PrismaService) {}
 
     // INFO: Supabase 인증 사용자를 동기화하고, 필요한 경우 약관 동의 여부를 반환한다.
-    async syncUser(authUser: SupabaseUser, participantUuids: string[]): Promise<IAuthSyncResult> {
+    async syncUser(
+        authUser: SupabaseUser,
+        participantUuids: string[],
+    ): Promise<AuthSyncResponseDto> {
         try {
             return await this.prisma.$transaction(async (tx) => {
+                // 인증 사용자를 서비스 user로 동기화하고 최신 정책 동의 필요 여부를 계산한다.
                 const user = await this.findOrCreateUser(tx, authUser);
                 const consentRequired = await this.computeConsentRequired(tx, user.userId);
 
+                // 이미 로그인 사용자와 연결된 participant는 다른 계정으로 재연결하지 않는다.
                 if (participantUuids.length > 0) {
-                    // 이미 로그인 사용자와 연결된 participant는 다른 계정으로 재연결하지 않는다.
                     await tx.participant.updateMany({
                         where: {
                             participantUuid: { in: participantUuids },
@@ -45,7 +42,7 @@ export class AuthService {
                     });
                 }
 
-                return { user, consentRequired };
+                return { user: { userId: user.userId, nickname: user.nickname }, consentRequired };
             });
         } catch (error) {
             if (error instanceof AppException) throw error;
@@ -86,7 +83,7 @@ export class AuthService {
     }
 
     // INFO: 최신 약관/개인정보처리방침 조합에 대한 사용자 동의를 기록한다.
-    async recordConsent(authUser: SupabaseUser): Promise<IAuthConsentResult> {
+    async recordConsent(authUser: SupabaseUser): Promise<AuthConsentResponseDto> {
         try {
             return await this.prisma.$transaction(async (tx) => {
                 const user = await this.findOrCreateUser(tx, authUser);
@@ -109,8 +106,8 @@ export class AuthService {
                     },
                 });
 
+                // 같은 버전에 대한 재동의는 새 레코드를 만들지 않고 동의 시각만 갱신한다.
                 if (existingConsent) {
-                    // 같은 버전에 대한 재동의는 새 레코드를 만들지 않고 동의 시각만 갱신한다.
                     await tx.userConsent.update({
                         where: { consentId: existingConsent.consentId },
                         data: { agreedAt: new Date() },
