@@ -2,7 +2,6 @@ import {
     ApiBadRequestResponse,
     ApiBearerAuth,
     ApiExtraModels,
-    ApiHeader,
     ApiInternalServerErrorResponse,
     ApiNotFoundResponse,
     ApiOkResponse,
@@ -14,21 +13,6 @@ import { applyDecorators } from '@nestjs/common';
 import { AuthConsentResponseDto } from '../modules/auth/dto/res/auth-consent.response.dto.js';
 import { AuthSyncResponseDto } from '../modules/auth/dto/res/auth-sync.response.dto.js';
 import { ErrorResponseDto } from '../common/dto/response.dto.js';
-
-export const AUTH_SYNC_OK_EXAMPLE = {
-    statusCode: 200,
-    timestamp: '2026-03-18T06:51:01.242Z',
-    path: '/auth/sync',
-    message: '사용자 동기화가 완료되었습니다.',
-    data: {
-        user: {
-            userId: '8f7c2a1e-0000-0000-0000-000000000000',
-            nickname: '노글리',
-        },
-        consentRequired: true,
-    },
-    error: null,
-};
 
 export const AUTH_SYNC_BAD_REQUEST_EXAMPLE = {
     statusCode: 400,
@@ -107,19 +91,8 @@ function responseSchema<TModel extends new (...args: never[]) => object>(
 
 export function ApiAuthSync() {
     return applyDecorators(
-        ApiOperation({ summary: '사용자 동기화' }),
-        ApiBearerAuth(),
-        ApiHeader({
-            name: 'cookie',
-            required: false,
-            description:
-                '선택값. 비회원 참여 이력이 있으면 `participant_uuid_{roomSlug}` 쿠키가 자동 전송됩니다.',
-        }),
         ApiExtraModels(AuthSyncResponseDto, ErrorResponseDto),
-        ApiOkResponse({
-            description: '로그인 / 심리스 하이브리드 인증 성공',
-            schema: responseSchema(AuthSyncResponseDto, AUTH_SYNC_OK_EXAMPLE),
-        }),
+
         ApiBadRequestResponse({
             description: '유효하지 않은 요청',
             schema: responseSchema(ErrorResponseDto, AUTH_SYNC_BAD_REQUEST_EXAMPLE),
