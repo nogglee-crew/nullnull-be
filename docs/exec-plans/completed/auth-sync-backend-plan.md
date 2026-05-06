@@ -67,3 +67,4 @@
 - Status: Completed
 - Follow-up:
     - production Supabase/Render 분리 시 auth redirect URI와 환경변수 정책을 다시 정리한다.
+    - 구현 후속 리팩터링으로 Supabase 토큰 검증은 `JwtAuthGuard`와 `SupabaseAuthService`로 분리하고, `AuthService`는 서비스 사용자 동기화와 동의 처리에 집중하도록 책임을 재정리했다.
