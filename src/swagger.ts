@@ -5,6 +5,6 @@ export function createSwaggerConfig() {
         .setTitle('NULLNULL API')
         .setDescription('NULLNULL backend API documentation')
         .setVersion('1.0.0')
-        .addBearerAuth()
+        .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'accessToken')
         .build();
 }

@@ -13,13 +13,13 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { RoomService } from './room.service.js';
-import { CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
+import { type CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
 import { CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
 import CustomResponse from '../../common/response/custom-response.js';
 import { SuccessResponseInterceptor } from '../../common/interceptor/success-response.interceptor.js';
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter.js';
 import { ApiCustomResponseDecorator } from '../../common/utils/decorators/api-custom-response.decorator.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard.js';
 
 @ApiTags('방(Room)')
 @ApiBearerAuth('accessToken')
