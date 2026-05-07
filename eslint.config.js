@@ -21,6 +21,18 @@ export default tseslint.config(
     ...tseslint.configs.recommended,
     prettier,
     {
+        files: [
+            'src/**/*.service.ts',
+            'src/**/*.controller.ts',
+            'src/**/*.guard.ts',
+            'src/**/*.repository.ts',
+            'src/**/*.module.ts',
+        ],
+        rules: {
+            '@typescript-eslint/consistent-type-imports': 'off',
+        },
+    },
+    {
         files: ['**/*.{js,cjs,mjs,ts,cts,mts}'],
         languageOptions: {
             ecmaVersion: 'latest',
