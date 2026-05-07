@@ -22,7 +22,7 @@ import { HttpExceptionFilter } from '../../common/filters/http-exception.filter.
 import { AuthConsentResponseDto } from './dto/res/auth-consent.response.dto.js';
 import { AuthSyncResponseDto } from './dto/res/auth-sync.response.dto.js';
 import { ApiCustomResponseDecorator } from '../../common/utils/decorators/api-custom-response.decorator.js';
-import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { JwtAuthGuard } from './guard/jwt-auth.guard.js';
 import CustomResponse from '../../common/response/custom-response.js';
 
 @ApiTags('인증(Auth)')
@@ -55,8 +55,9 @@ export class AuthController {
         @Req() req: any,
         @Headers() headers: AuthSyncRequestDto,
     ): Promise<CustomResponse<AuthSyncResponseDto>> {
-        const participantUuids = this.authService.extractParticipantUuids(headers.cookie);
-        const result = await this.authService.syncUser(req.user, participantUuids);
+        const { cookie } = headers;
+        const participantUuids = this.authService.extractParticipantUuids(cookie);
+        const result = await this.authService.syncUser(req.authUser, participantUuids);
 
         return new CustomResponse<AuthSyncResponseDto>(result, '사용자 동기화가 완료되었습니다.');
     }
@@ -74,7 +75,7 @@ export class AuthController {
     @HttpCode(HttpStatus.OK)
     @Post('consent')
     async consent(@Req() req: any): Promise<CustomResponse<AuthConsentResponseDto>> {
-        const result = await this.authService.recordConsent(req.user);
+        const result = await this.authService.recordConsent(req.authUser);
 
         return new CustomResponse<AuthConsentResponseDto>(result, '약관 동의가 완료되었습니다.');
     }

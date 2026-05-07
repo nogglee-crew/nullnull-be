@@ -1,23 +1,29 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import { HttpStatus, type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
 import {
     createClient,
     type SupabaseClient,
     type User as SupabaseUser,
 } from '@supabase/supabase-js';
-import { AppException } from '../../common/exception/app.exception.js';
-import { ErrorCode } from '../../common/exception/error-codes.js';
+import { AppException } from '../../../common/exception/app.exception.js';
+import { ErrorCode } from '../../../common/exception/error-codes.js';
 
 @Injectable()
-export class SupabaseAuthService {
+export class JwtAuthGuard implements CanActivate {
     private supabase: SupabaseClient | null = null;
 
-    authenticate(authorizationHeader: string | undefined): Promise<SupabaseUser> {
-        const accessToken = this.extractBearerToken(authorizationHeader);
-        return this.verifyAccessToken(accessToken);
+    async canActivate(context: ExecutionContext): Promise<boolean> {
+        const request = context.switchToHttp().getRequest();
+        const authorizationHeader = request.headers['authorization'];
+
+        // request.authUser에는 검증이 끝난 Supabase 인증 사용자만 주입한다.
+        request.authUser = await this.verifyAccessToken(authorizationHeader);
+
+        return true;
     }
 
-    // INFO: Authorization header에서 Bearer access token을 추출한다.
-    extractBearerToken(authorizationHeader: string | undefined): string {
+    private async verifyAccessToken(
+        authorizationHeader: string | undefined,
+    ): Promise<SupabaseUser> {
         if (!authorizationHeader) {
             throw new AppException(
                 HttpStatus.UNAUTHORIZED,
@@ -31,20 +37,14 @@ export class SupabaseAuthService {
             throw new AppException(
                 HttpStatus.UNAUTHORIZED,
                 '유효하지 않은 인증 토큰입니다.',
-                ErrorCode.INVALID_REQUEST,
+                ErrorCode.UNAUTHORIZED,
             );
         }
 
-        return token;
-    }
-
-    // INFO: Supabase access token을 서버에서 검증하고 인증 사용자를 반환한다.
-    async verifyAccessToken(accessToken: string): Promise<SupabaseUser> {
         const {
             data: { user },
             error,
-        } = await this.getSupabase().auth.getUser(accessToken);
-
+        } = await this.getSupabase().auth.getUser(token);
         if (error || !user) {
             throw new AppException(
                 HttpStatus.UNAUTHORIZED,
@@ -56,7 +56,7 @@ export class SupabaseAuthService {
         return user;
     }
 
-    // INFO: Supabase client를 지연 초기화해 재사용한다.
+    // TODO: Supabase client 초기화는 추후 별도 provider/factory로 분리 검토.
     private getSupabase(): SupabaseClient {
         if (this.supabase) return this.supabase;
 
@@ -75,7 +75,6 @@ export class SupabaseAuthService {
         return this.supabase;
     }
 
-    // INFO: 필수 환경변수 값을 조회하고 누락 시 설정 오류를 발생시킨다.
     private requireEnv(key: string): string {
         const value = process.env[key];
         if (!value) throw new Error(`${key} is not set`);

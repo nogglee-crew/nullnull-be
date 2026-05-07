@@ -2,24 +2,18 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { User } from '../../generated/prisma/client.js';
 import { PolicyType } from '../../generated/prisma/client.js';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
-import { PrismaService } from '../../database/prisma.service.js';
 import { ErrorCode } from '../../common/exception/error-codes.js';
 import { AppException } from '../../common/exception/app.exception.js';
 import { type AuthSyncResponseDto } from './dto/res/auth-sync.response.dto.js';
 import { type AuthConsentResponseDto } from './dto/res/auth-consent.response.dto.js';
-
-type UserLookupClient = Pick<PrismaService, 'user'>;
-type ConsentLookupClient = Pick<PrismaService, 'policyVersion' | 'userConsent'>;
+import { AuthRepository } from './auth.repository.js';
 
 const PARTICIPANT_COOKIE_PATTERN = /^participant_uuid_[A-Za-z0-9-]+$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 @Injectable()
 export class AuthService {
-    constructor(
-        @Inject(PrismaService)
-        private readonly prisma: PrismaService,
-    ) {}
+    constructor(@Inject(AuthRepository) private readonly authRepository: AuthRepository) {}
 
     // INFO: Supabase 인증 사용자를 동기화하고, 필요한 경우 약관 동의 여부를 반환한다.
     async syncUser(
@@ -27,29 +21,24 @@ export class AuthService {
         participantUuids: string[],
     ): Promise<AuthSyncResponseDto> {
         try {
-            return await this.prisma.$transaction(async (tx) => {
+            return await this.authRepository.withTransaction(async (tx) => {
                 // 인증 사용자를 서비스 user로 동기화하고 최신 정책 동의 필요 여부를 계산한다.
                 const user = await this.findOrCreateUser(tx, authUser);
                 const consentRequired = await this.computeConsentRequired(tx, user.userId);
 
                 // 이미 로그인 사용자와 연결된 participant는 다른 계정으로 재연결하지 않는다.
                 if (participantUuids.length > 0) {
-                    await tx.participant.updateMany({
-                        where: {
-                            participantUuid: { in: participantUuids },
-                            userId: null,
-                        },
-                        data: {
-                            userId: user.userId,
-                        },
-                    });
+                    await this.authRepository.attachAnonymousParticipants(
+                        tx,
+                        participantUuids,
+                        user.userId,
+                    );
                 }
 
                 return { user: { userId: user.userId, nickname: user.nickname }, consentRequired };
             });
         } catch (error) {
             if (error instanceof AppException) throw error;
-            console.error('Auth Sync Error:', error);
             throw new AppException(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 '사용자 동기화 중 오류가 발생했습니다.',
@@ -59,11 +48,11 @@ export class AuthService {
     }
 
     // INFO: auth sync 요청 쿠키에서 익명 참여자 UUID 목록을 추출한다.
-    extractParticipantUuids(cookieHeader: string | undefined): string[] {
-        if (!cookieHeader) return [];
+    extractParticipantUuids(cookie: string | undefined): string[] {
+        if (!cookie) return [];
 
         // participant 연결 쿠키만 선별하고, 값은 UUID 형식일 때만 신뢰한다.
-        const values = cookieHeader
+        const values = cookie
             .split(';')
             .map((entry) => entry.trim())
             .map((entry) => {
@@ -88,7 +77,7 @@ export class AuthService {
     // INFO: 최신 약관/개인정보처리방침 조합에 대한 사용자 동의를 기록한다.
     async recordConsent(authUser: SupabaseUser): Promise<AuthConsentResponseDto> {
         try {
-            return await this.prisma.$transaction(async (tx) => {
+            return await this.authRepository.withTransaction(async (tx) => {
                 const user = await this.findOrCreateUser(tx, authUser);
                 // 동의는 항상 현재 latest 약관/개인정보처리방침 조합을 기준으로 기록한다.
                 const latestPolicies = await this.getLatestRequiredPolicies(tx);
@@ -101,29 +90,23 @@ export class AuthService {
                     );
                 }
 
-                const existingConsent = await tx.userConsent.findFirst({
-                    where: {
-                        userId: user.userId,
-                        termsVersionId: latestPolicies.terms.policyVersionId,
-                        privacyVersionId: latestPolicies.privacy.policyVersionId,
-                    },
-                });
+                const existingConsent = await this.authRepository.findConsent(
+                    tx,
+                    user.userId,
+                    latestPolicies.terms.policyVersionId,
+                    latestPolicies.privacy.policyVersionId,
+                );
 
                 // 같은 버전에 대한 재동의는 새 레코드를 만들지 않고 동의 시각만 갱신한다.
                 if (existingConsent) {
-                    await tx.userConsent.update({
-                        where: { consentId: existingConsent.consentId },
-                        data: { agreedAt: new Date() },
-                    });
+                    await this.authRepository.updateConsentAgreedAt(tx, existingConsent.consentId);
                 } else {
-                    await tx.userConsent.create({
-                        data: {
-                            userId: user.userId,
-                            termsVersionId: latestPolicies.terms.policyVersionId,
-                            privacyVersionId: latestPolicies.privacy.policyVersionId,
-                            agreedAt: new Date(),
-                        },
-                    });
+                    await this.authRepository.createConsent(
+                        tx,
+                        user.userId,
+                        latestPolicies.terms.policyVersionId,
+                        latestPolicies.privacy.policyVersionId,
+                    );
                 }
 
                 return { consentRequired: false };
@@ -139,48 +122,40 @@ export class AuthService {
     }
 
     // INFO: Supabase 사용자 식별자 기준으로 서비스 사용자를 조회하거나 생성한다.
-    private async findOrCreateUser(tx: UserLookupClient, authUser: SupabaseUser): Promise<User> {
-        const existingUser = await tx.user.findUnique({
-            where: { userId: authUser.id },
-        });
+    private async findOrCreateUser(
+        tx: Parameters<AuthRepository['findUserById']>[0],
+        authUser: SupabaseUser,
+    ): Promise<User> {
+        const existingUser = await this.authRepository.findUserById(tx, authUser.id);
 
         if (existingUser) return existingUser;
 
-        return tx.user.create({
-            data: {
-                userId: authUser.id,
-                nickname: this.resolveNickname(authUser),
-            },
-        });
+        return this.authRepository.createUser(tx, authUser.id, this.resolveNickname(authUser));
     }
 
     // INFO: 사용자가 최신 필수 정책 조합에 동의해야 하는지 계산한다.
     private async computeConsentRequired(
-        tx: ConsentLookupClient,
+        tx: Parameters<AuthRepository['findLatestPolicies']>[0],
         userId: string,
     ): Promise<boolean> {
         const latestPolicies = await this.getLatestRequiredPolicies(tx);
         if (!latestPolicies) return false;
 
-        const consent = await tx.userConsent.findFirst({
-            where: {
-                userId,
-                termsVersionId: latestPolicies.terms.policyVersionId,
-                privacyVersionId: latestPolicies.privacy.policyVersionId,
-            },
-        });
+        const consent = await this.authRepository.findConsent(
+            tx,
+            userId,
+            latestPolicies.terms.policyVersionId,
+            latestPolicies.privacy.policyVersionId,
+        );
 
         return !consent;
     }
 
     // INFO: 현재 latest로 지정된 필수 약관/개인정보처리방침 버전을 조회한다.
-    private async getLatestRequiredPolicies(tx: ConsentLookupClient) {
-        const latestPolicies = await tx.policyVersion.findMany({
-            where: {
-                isLatest: true,
-                policyType: { in: [PolicyType.TERMS, PolicyType.PRIVACY] },
-            },
-        });
+    private async getLatestRequiredPolicies(
+        tx: Parameters<AuthRepository['findLatestPolicies']>[0],
+    ) {
+        const latestPolicies = await this.authRepository.findLatestPolicies(tx);
 
         const terms = latestPolicies.find((p) => p.policyType === PolicyType.TERMS);
         const privacy = latestPolicies.find((p) => p.policyType === PolicyType.PRIVACY);
