@@ -55,7 +55,7 @@
     - verify: 트랜잭션으로 consent + participant 생성이 묶이고 `JOINED` 상태로 저장됨
 5. HTTP 응답과 쿠키 처리를 마무리한다.
     - 비회원 참여 시 `participant_uuid_{roomSlug}` HttpOnly cookie 저장
-    - 응답 DTO는 `{ participantStatus: 'JOINED' }`로 고정
+    - 응답 DTO는 생성된 `participantId`를 반환
     - verify: 회원/비회원 성공 응답과 Set-Cookie 유무 차이를 수동 확인
 6. 에러/문서/검증을 정리한다.
     - `400 INVALID_NICKNAME`
@@ -97,6 +97,6 @@
 
 ## Outcome
 
-- Status: planned
+- Status: completed
 - Follow-up:
-    - participants 모듈 구현
+    - 참여 직후 참여 정보 저장 API 설계
