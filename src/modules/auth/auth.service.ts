@@ -101,11 +101,13 @@ export class AuthService {
                 if (existingConsent) {
                     await this.authRepository.updateConsentAgreedAt(tx, existingConsent.consentId);
                 } else {
+                    const agreedAt = new Date();
                     await this.authRepository.createConsent(
                         tx,
                         user.userId,
                         latestPolicies.terms.policyVersionId,
                         latestPolicies.privacy.policyVersionId,
+                        agreedAt,
                     );
                 }
 
