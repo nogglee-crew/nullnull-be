@@ -108,16 +108,15 @@ export class ParticipantsService {
                         );
                     }
 
-                    const participant =
-                        await this.participantsRepository.createRegisteredParticipant(tx, {
-                            roomId: room.roomId,
-                            userId: user.userId,
-                            nickname,
-                            role,
-                            termsVersionId: latestPolicies.terms.policyVersionId,
-                            privacyVersionId: latestPolicies.privacy.policyVersionId,
-                            agreedAt,
-                        });
+                    const participant = await this.participantsRepository.createParticipant(tx, {
+                        roomId: room.roomId,
+                        userId: user.userId,
+                        nickname,
+                        role,
+                        termsVersionId: latestPolicies.terms.policyVersionId,
+                        privacyVersionId: latestPolicies.privacy.policyVersionId,
+                        agreedAt,
+                    });
 
                     return {
                         data: { participantId: Number(participant.participantId) },
@@ -149,7 +148,7 @@ export class ParticipantsService {
                 // 신규 비회원 참여자는 새 participant UUID를 발급하고, 그 값을 쿠키로 내려준다.
                 const agreedAt = new Date();
                 const issuedParticipantUuid = randomUUID();
-                const participant = await this.participantsRepository.createGuestParticipant(tx, {
+                const participant = await this.participantsRepository.createParticipant(tx, {
                     roomId: room.roomId,
                     participantUuid: issuedParticipantUuid,
                     nickname,

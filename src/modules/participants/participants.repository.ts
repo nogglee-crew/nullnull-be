@@ -50,11 +50,12 @@ export class ParticipantsRepository {
         });
     }
 
-    createRegisteredParticipant(
+    createParticipant(
         tx: ParticipantsTransactionClient,
         params: {
             roomId: bigint;
-            userId: string;
+            userId?: string;
+            participantUuid?: string;
             nickname: string;
             role: ParticipantRole;
             termsVersionId: bigint;
@@ -66,31 +67,6 @@ export class ParticipantsRepository {
             data: {
                 roomId: params.roomId,
                 userId: params.userId,
-                nickname: params.nickname,
-                role: params.role,
-                status: ParticipantStatus.JOINED,
-                termsVersionId: params.termsVersionId,
-                privacyVersionId: params.privacyVersionId,
-                agreedAt: params.agreedAt,
-            },
-        });
-    }
-
-    createGuestParticipant(
-        tx: ParticipantsTransactionClient,
-        params: {
-            roomId: bigint;
-            participantUuid: string;
-            nickname: string;
-            role: ParticipantRole;
-            termsVersionId: bigint;
-            privacyVersionId: bigint;
-            agreedAt: Date;
-        },
-    ) {
-        return tx.participant.create({
-            data: {
-                roomId: params.roomId,
                 participantUuid: params.participantUuid,
                 nickname: params.nickname,
                 role: params.role,
