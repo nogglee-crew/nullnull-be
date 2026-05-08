@@ -10,6 +10,7 @@ import {
     PolicyType,
     RoomStatus,
 } from '../../generated/prisma/enums.js';
+import { TimeUtil } from '../../common/utils/time.util.js';
 import { type JoinParticipantRequestDto } from './dto/req/join-participant.request.dto.js';
 import { type SubmitParticipationRequestDto } from './dto/req/submit-participation.request.dto.js';
 import { type JoinParticipantResponseDto } from './dto/res/join-participant.response.dto.js';
@@ -367,7 +368,7 @@ export class ParticipantsService {
         const blockedSlots = body.blockedSlots ?? [];
         return blockedSlots.flatMap((blockedSlot) =>
             blockedSlot.slotIndexes.map((slotIndex) => ({
-                date: new Date(blockedSlot.date),
+                date: TimeUtil.toUtcDateOnly(blockedSlot.date),
                 slotIndex,
             })),
         );

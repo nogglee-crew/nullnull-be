@@ -34,6 +34,23 @@ export const TimeUtil = {
         return dayjs(date).tz(KST_TIMEZONE).startOf('day');
     },
 
+    /**
+     * DATE 컬럼에 저장할 값을 만든다.
+     *
+     * PostgreSQL DATE는 시간대 정보 없이 "달력 날짜"만 저장하지만,
+     * JS Date를 그대로 넘기면 내부 UTC 시각 기준으로 하루가 밀릴 수 있다.
+     * 예를 들어 KST 자정(2026-05-18 00:00+09:00)은 UTC로 2026-05-17 15:00:00Z라서
+     * DATE 컬럼에 2026-05-17로 들어갈 수 있다.
+     *
+     * 이 helper는 KST 기준 달력 날짜를 먼저 YYYY-MM-DD 문자열로 고정한 뒤,
+     * 같은 날짜의 UTC 자정 Date(YYYY-MM-DDT00:00:00.000Z)를 만들어 반환한다.
+     * 이렇게 만든 Date를 DATE 컬럼에 넣으면 DB에는 의도한 달력 날짜 그대로 저장된다.
+     */
+    toUtcDateOnly(date: string | Date | number) {
+        const formattedDate = dayjs(date).tz(KST_TIMEZONE).format('YYYY-MM-DD');
+        return new Date(`${formattedDate}T00:00:00.000Z`);
+    },
+
     // --- 슬롯 인덱스(0-47) 관련 로직 ---
 
     /**
