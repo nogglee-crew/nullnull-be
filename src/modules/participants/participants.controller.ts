@@ -23,6 +23,7 @@ import { type JoinParticipantRequestDto } from './dto/req/join-participant.reque
 import { JoinParticipantResponseDto } from './dto/res/join-participant.response.dto.js';
 import { ParticipantsService } from './participants.service.js';
 import { ApiJoinParticipantErrorResponses } from '../../swagger/participant.swagger.js';
+import { type OptionalAuthenticatedRequest } from '../../common/type/auth-request.interface.js';
 
 @ApiTags('참여자(Participants)')
 @ApiBearerAuth('accessToken')
@@ -54,7 +55,7 @@ export class ParticipantsController {
     @Post()
     async joinRoom(
         @Param('roomId') roomId: string,
-        @Req() req: any,
+        @Req() req: OptionalAuthenticatedRequest,
         @Headers('cookie') cookie: string | undefined,
         @Body() body: JoinParticipantRequestDto,
         @Res({ passthrough: true }) response: any,
