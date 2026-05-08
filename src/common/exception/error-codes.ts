@@ -1,5 +1,6 @@
 export enum ErrorCode {
     // default
+    INVALID_REQUEST = 'INVALID_REQUEST',
     UNAUTHORIZED = 'UNAUTHORIZED',
     FORBIDDEN = 'FORBIDDEN',
     NOT_FOUND = 'NOT_FOUND',

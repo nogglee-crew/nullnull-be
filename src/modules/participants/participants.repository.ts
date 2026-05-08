@@ -4,7 +4,7 @@ import { type ParticipantRole, ParticipantStatus } from '../../generated/prisma/
 
 type ParticipantsTransactionClient = Pick<
     PrismaService,
-    'participant' | 'policyVersion' | 'room' | 'user' | 'userConsent'
+    'blockedSlot' | 'origin' | 'participant' | 'policyVersion' | 'room' | 'user' | 'userConsent'
 >;
 
 @Injectable()
@@ -50,6 +50,24 @@ export class ParticipantsRepository {
         });
     }
 
+    findParticipantForParticipation(tx: ParticipantsTransactionClient, participantId: bigint) {
+        return tx.participant.findUnique({
+            where: { participantId },
+            select: {
+                participantId: true,
+                userId: true,
+                participantUuid: true,
+                room: {
+                    select: {
+                        collectOrigin: true,
+                        slug: true,
+                        status: true,
+                    },
+                },
+            },
+        });
+    }
+
     createParticipant(
         tx: ParticipantsTransactionClient,
         params: {
@@ -75,6 +93,56 @@ export class ParticipantsRepository {
                 privacyVersionId: params.privacyVersionId,
                 agreedAt: params.agreedAt,
             },
+        });
+    }
+
+    replaceBlockedSlots(
+        tx: ParticipantsTransactionClient,
+        participantId: bigint,
+        blockedSlots: { date: Date; slotIndex: number }[],
+    ) {
+        return tx.blockedSlot.deleteMany({ where: { participantId } }).then(async () => {
+            if (blockedSlots.length === 0) return;
+
+            await tx.blockedSlot.createMany({
+                data: blockedSlots.map((blockedSlot) => ({
+                    participantId,
+                    date: blockedSlot.date,
+                    slotIndex: blockedSlot.slotIndex,
+                })),
+            });
+        });
+    }
+
+    upsertOrigin(
+        tx: ParticipantsTransactionClient,
+        participantId: bigint,
+        origin: { address: string; lat: number; lng: number },
+    ) {
+        return tx.origin.upsert({
+            where: { participantId },
+            update: {
+                address: origin.address,
+                latitude: origin.lat,
+                longitude: origin.lng,
+            },
+            create: {
+                participantId,
+                address: origin.address,
+                latitude: origin.lat,
+                longitude: origin.lng,
+            },
+        });
+    }
+
+    updateParticipantStatus(
+        tx: ParticipantsTransactionClient,
+        participantId: bigint,
+        status: ParticipantStatus,
+    ) {
+        return tx.participant.update({
+            where: { participantId },
+            data: { status },
         });
     }
 }
