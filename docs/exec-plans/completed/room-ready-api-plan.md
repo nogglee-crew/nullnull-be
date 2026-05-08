@@ -56,7 +56,7 @@
     - verify: 후보 생성에 쓰이는 participant/status/origin 기준이 문서에 명시됨
 4. 시간 후보 생성 유스케이스를 구현한다.
     - 제출된 불가능 시간 정보를 바탕으로 가능한 시간 슬롯을 계산한다.
-    - 계산된 결과를 room 후보 테이블/모델에 저장한다.
+    - 계산된 결과는 `time_options`에 `date`(`DATE`), `start_at`(`TIME`), `end_at`(`TIME`) 구조로 저장한다.
     - verify: 후보 생성과 room 상태 전이가 하나의 트랜잭션 또는 일관된 저장 흐름으로 묶임
 5. 장소 후보 생성 유스케이스를 구현한다.
     - `collectOrigin=true`일 때만 추천 장소 후보를 생성한다.
@@ -69,6 +69,7 @@
 7. 응답과 문서를 정리한다.
     - 성공 응답은 `data: null`, 메시지는 `방이 마감되었습니다.`
     - 401/403/404/409/422/500 문서화
+    - 외부 API 실패는 `500 EXTERNAL_API_ERROR`로 분리한다.
     - verify: Swagger 예시와 실제 분기가 일치함
 8. 자동 마감과의 연결 지점을 기록한다.
     - 자동 마감 스케줄러는 동일한 후보 생성/상태 전이 로직을 재사용할 수 있어야 한다.
@@ -106,10 +107,13 @@
 - 2026-05-08: room 상태는 후보 생성과 저장이 모두 끝난 뒤 마지막에 `READY`로 전이한다.
 - 2026-05-08: 시간/장소 후보 orchestration은 우선 `RoomService` 내부에서 동기 처리한다.
 - 2026-05-08: `blocked_slots`가 비어 있는 `SUBMITTED` participant는 전 시간 가능으로 해석한다.
+- 2026-05-09: 시간 후보는 timezone 혼동을 줄이기 위해 `timestamp`가 아니라 `date + time + time` 구조로 저장한다.
+- 2026-05-09: room/ready path param은 `ParseBigIntPipe`로 컨트롤러 레벨에서 검증한다.
+- 2026-05-09: 외부 장소 검색 실패는 `EXTERNAL_API_ERROR`로 구분하되, room 상태는 `READY`로 전이하지 않고 전체 실패 처리한다.
 
 ## Outcome
 
-- Status: active
+- Status: completed
 - Follow-up:
     - 자동 마감 스케줄러 구현
     - 결과 확정 API 구현
