@@ -13,7 +13,7 @@ import {
 import { type JoinParticipantRequestDto } from './dto/req/join-participant.request.dto.js';
 import { type SubmitParticipationRequestDto } from './dto/req/submit-participation.request.dto.js';
 import { type JoinParticipantResponseDto } from './dto/res/join-participant.response.dto.js';
-import { SubmitParticipationResponseDto } from './dto/res/submit-participation.response.dto.js';
+import { ParticipantStatusResponseDto } from './dto/res/submit-participation.response.dto.js';
 import { ParticipantsRepository } from './participants.repository.js';
 import { AuthRepository } from '../auth/auth.repository.js';
 
@@ -187,7 +187,7 @@ export class ParticipantsService {
         body: SubmitParticipationRequestDto,
         authUser: SupabaseUser | undefined,
         cookieHeader: string | undefined,
-    ): Promise<SubmitParticipationResponseDto> {
+    ): Promise<ParticipantStatusResponseDto> {
         const participantId = this.parseParticipantId(participantIdParam);
         const blockedSlots = this.normalizeBlockedSlots(body);
 
@@ -258,6 +258,68 @@ export class ParticipantsService {
             throw new AppException(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 '참여 정보 저장 중 오류가 발생했습니다.',
+                ErrorCode.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    // 참여자 본인 여부를 확인한 뒤 제출 정보를 삭제하고 참여 상태를 DECLINED로 변경한다.
+    async declineParticipant(
+        participantIdParam: string,
+        authUser: SupabaseUser | undefined,
+        cookieHeader: string | undefined,
+    ): Promise<ParticipantStatusResponseDto> {
+        const participantId = this.parseParticipantId(participantIdParam);
+
+        try {
+            return await this.participantsRepository.withTransaction(async (tx) => {
+                const participant =
+                    await this.participantsRepository.findParticipantForParticipation(
+                        tx,
+                        participantId,
+                    );
+
+                if (!participant) {
+                    throw new AppException(
+                        HttpStatus.NOT_FOUND,
+                        '존재하지 않는 참여자입니다.',
+                        ErrorCode.PARTICIPANT_NOT_FOUND,
+                    );
+                }
+
+                if (participant.room.status !== RoomStatus.COLLECTING) {
+                    throw new AppException(
+                        HttpStatus.CONFLICT,
+                        '불참 처리할 수 없는 방 상태입니다.',
+                        ErrorCode.INVALID_ROOM_STATUS,
+                    );
+                }
+
+                if (!this.canEditParticipation(participant, authUser, cookieHeader)) {
+                    throw new AppException(
+                        HttpStatus.FORBIDDEN,
+                        '처리 권한이 없습니다.',
+                        ErrorCode.FORBIDDEN,
+                    );
+                }
+
+                await this.participantsRepository.clearParticipationData(
+                    tx,
+                    participant.participantId,
+                );
+                await this.participantsRepository.updateParticipantStatus(
+                    tx,
+                    participant.participantId,
+                    ParticipantStatus.DECLINED,
+                );
+
+                return { participantStatus: ParticipantStatus.DECLINED };
+            });
+        } catch (error) {
+            if (error instanceof AppException) throw error;
+            throw new AppException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                '불참 처리 중 오류가 발생했습니다.',
                 ErrorCode.INTERNAL_SERVER_ERROR,
             );
         }

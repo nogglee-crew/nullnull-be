@@ -23,9 +23,10 @@ import CustomResponse from '../../common/response/custom-response.js';
 import { JoinParticipantRequestDto } from './dto/req/join-participant.request.dto.js';
 import { SubmitParticipationRequestDto } from './dto/req/submit-participation.request.dto.js';
 import { JoinParticipantResponseDto } from './dto/res/join-participant.response.dto.js';
-import { SubmitParticipationResponseDto } from './dto/res/submit-participation.response.dto.js';
+import { ParticipantStatusResponseDto } from './dto/res/submit-participation.response.dto.js';
 import { ParticipantsService } from './participants.service.js';
 import {
+    ApiDeclineParticipantErrorResponses,
     ApiJoinParticipantErrorResponses,
     ApiSubmitParticipationErrorResponses,
 } from '../../swagger/participant.swagger.js';
@@ -90,7 +91,7 @@ export class ParticipantsController {
         description:
             '선택값. 비회원 참여자인 경우 `participant_uuid_{roomSlug}` 쿠키로 수정 권한을 확인합니다.',
     })
-    @ApiCustomResponseDecorator(SubmitParticipationResponseDto, {
+    @ApiCustomResponseDecorator(ParticipantStatusResponseDto, {
         message: '참여 정보가 저장되었습니다.',
         path: '/participants/1/participation',
     })
@@ -103,7 +104,7 @@ export class ParticipantsController {
         @Req() req: OptionalAuthenticatedRequest,
         @Headers('cookie') cookie: string | undefined,
         @Body() body: SubmitParticipationRequestDto,
-    ): Promise<CustomResponse<SubmitParticipationResponseDto>> {
+    ): Promise<CustomResponse<ParticipantStatusResponseDto>> {
         const result = await this.participantsService.submitParticipation(
             participantId,
             body,
@@ -111,9 +112,41 @@ export class ParticipantsController {
             cookie,
         );
 
-        return new CustomResponse<SubmitParticipationResponseDto>(
+        return new CustomResponse<ParticipantStatusResponseDto>(
             result,
             '참여 정보가 저장되었습니다.',
         );
+    }
+
+    @ApiOperation({
+        summary: '불참 처리 API',
+        description: '참여자가 해당 방에 대해 불참 의사를 표시합니다.',
+    })
+    @ApiHeader({
+        name: 'cookie',
+        required: false,
+        description:
+            '선택값. 비회원 참여자인 경우 `participant_uuid_{roomSlug}` 쿠키로 처리 권한을 확인합니다.',
+    })
+    @ApiCustomResponseDecorator(ParticipantStatusResponseDto, {
+        message: '불참 처리되었습니다.',
+        path: '/participants/1/decline',
+    })
+    @ApiDeclineParticipantErrorResponses()
+    @UseGuards(OptionalJwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    @Patch('/participants/:participantId/decline')
+    async declineParticipant(
+        @Param('participantId') participantId: string,
+        @Req() req: OptionalAuthenticatedRequest,
+        @Headers('cookie') cookie: string | undefined,
+    ): Promise<CustomResponse<ParticipantStatusResponseDto>> {
+        const result = await this.participantsService.declineParticipant(
+            participantId,
+            req.authUser,
+            cookie,
+        );
+
+        return new CustomResponse<ParticipantStatusResponseDto>(result, '불참 처리되었습니다.');
     }
 }
