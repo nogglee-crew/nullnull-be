@@ -1,6 +1,7 @@
 model User {
   userId    String   @id @map("user_id") @db.Uuid
   nickname  String   @db.VarChar(50)
+  status    UserStatus @default(ACTIVE)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(6)
 

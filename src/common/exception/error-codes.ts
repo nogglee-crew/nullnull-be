@@ -10,6 +10,7 @@ export enum ErrorCode {
 
     // auth
     POLICY_VERSION_NOT_FOUND = 'POLICY_VERSION_NOT_FOUND',
+    ACTIVE_ROOM_EXISTS = 'ACTIVE_ROOM_EXISTS',
 
     // room
     INVALID_ROOM_INPUT = 'INVALID_ROOM_INPUT',
