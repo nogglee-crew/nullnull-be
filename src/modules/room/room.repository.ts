@@ -117,6 +117,60 @@ export class RoomRepository {
         });
     }
 
+    findRoomForCandidates(roomId: bigint) {
+        return this.prisma.room.findUnique({
+            where: { roomId },
+            select: {
+                roomId: true,
+                hostId: true,
+                status: true,
+                collectOrigin: true,
+                participants: {
+                    where: {
+                        status: ParticipantStatus.SUBMITTED,
+                    },
+                    select: {
+                        participantId: true,
+                        nickname: true,
+                        blockedSlots: {
+                            select: {
+                                date: true,
+                                slotIndex: true,
+                            },
+                        },
+                    },
+                },
+                timeOptions: {
+                    orderBy: {
+                        rank: 'asc',
+                    },
+                    select: {
+                        timeOptionId: true,
+                        date: true,
+                        startAt: true,
+                        endAt: true,
+                        availableCount: true,
+                        durationMinutes: true,
+                        rank: true,
+                    },
+                },
+                placeOptions: {
+                    orderBy: {
+                        rank: 'asc',
+                    },
+                    select: {
+                        placeOptionId: true,
+                        placeName: true,
+                        address: true,
+                        latitude: true,
+                        longitude: true,
+                        rank: true,
+                    },
+                },
+            },
+        });
+    }
+
     replaceTimeOptions(
         tx: RoomTransactionClient,
         roomId: bigint,

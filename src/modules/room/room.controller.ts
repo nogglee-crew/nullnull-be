@@ -1,6 +1,7 @@
 import {
     Body,
     Controller,
+    Get,
     Param,
     Post,
     UseGuards,
@@ -16,6 +17,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { RoomService } from './room.service.js';
 import { CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
 import { CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
+import { ReadRoomCandidatesResponseDto } from './dto/res/read-room-candidates.response.dto.js';
 import CustomResponse from '../../common/response/custom-response.js';
 import { SuccessResponseInterceptor } from '../../common/interceptor/success-response.interceptor.js';
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter.js';
@@ -23,6 +25,7 @@ import { ApiCustomResponseDecorator } from '../../common/utils/decorators/api-cu
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard.js';
 import { type AuthenticatedRequest } from '../../common/type/auth-request.interface.js';
 import {
+    ApiReadRoomCandidatesErrorResponses,
     ApiReadyRoomErrorResponses,
     ApiReadyRoomSuccessResponse,
 } from '../../swagger/room.swagger.js';
@@ -71,5 +74,29 @@ export class RoomController {
         await this.roomService.readyRoom(roomId, req.authUser.id);
 
         return new CustomResponse<null>(null, '방이 마감되었습니다.');
+    }
+
+    @ApiOperation({
+        summary: '확정 후보 조회 API',
+        description: '방장이 READY 상태의 방에서 시간/장소 후보를 조회합니다.',
+    })
+    @ApiCustomResponseDecorator(ReadRoomCandidatesResponseDto, {
+        message: '확정 후보 조회에 성공했습니다.',
+        path: '/rooms/1/candidates',
+    })
+    @ApiReadRoomCandidatesErrorResponses()
+    @HttpCode(HttpStatus.OK)
+    @UseGuards(JwtAuthGuard)
+    @Get('/:roomId/candidates')
+    async readRoomCandidates(
+        @Param('roomId', ParseBigIntPipe) roomId: bigint,
+        @Req() req: AuthenticatedRequest,
+    ): Promise<CustomResponse<ReadRoomCandidatesResponseDto>> {
+        const result = await this.roomService.readRoomCandidates(roomId, req.authUser.id);
+
+        return new CustomResponse<ReadRoomCandidatesResponseDto>(
+            result,
+            '확정 후보 조회에 성공했습니다.',
+        );
     }
 }

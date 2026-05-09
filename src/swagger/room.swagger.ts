@@ -123,3 +123,73 @@ export function ApiReadyRoomErrorResponses() {
         }),
     );
 }
+
+export const ROOM_CANDIDATES_UNAUTHORIZED = {
+    statusCode: 401,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/candidates',
+    message: '로그인이 필요합니다.',
+    data: null,
+    error: 'UNAUTHORIZED',
+};
+
+export const ROOM_CANDIDATES_FORBIDDEN = {
+    statusCode: 403,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/candidates',
+    message: '후보 조회 권한이 없습니다.',
+    data: null,
+    error: 'FORBIDDEN',
+};
+
+export const ROOM_CANDIDATES_NOT_FOUND = {
+    statusCode: 404,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/candidates',
+    message: '존재하지 않는 방입니다.',
+    data: null,
+    error: 'ROOM_NOT_FOUND',
+};
+
+export const ROOM_CANDIDATES_INVALID_STATUS = {
+    statusCode: 409,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/candidates',
+    message: '후보를 조회할 수 없는 방 상태입니다.',
+    data: null,
+    error: 'INVALID_ROOM_STATUS',
+};
+
+export const ROOM_CANDIDATES_INTERNAL_SERVER_ERROR = {
+    statusCode: 500,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/candidates',
+    message: '확정 후보 조회 중 오류가 발생했습니다.',
+    data: null,
+    error: 'INTERNAL_SERVER_ERROR',
+};
+
+export function ApiReadRoomCandidatesErrorResponses() {
+    return applyDecorators(
+        ApiUnauthorizedResponse({
+            description: '로그인 필요',
+            schema: { example: ROOM_CANDIDATES_UNAUTHORIZED },
+        }),
+        ApiForbiddenResponse({
+            description: '후보 조회 권한 없음',
+            schema: { example: ROOM_CANDIDATES_FORBIDDEN },
+        }),
+        ApiNotFoundResponse({
+            description: '존재하지 않는 방',
+            schema: { example: ROOM_CANDIDATES_NOT_FOUND },
+        }),
+        ApiConflictResponse({
+            description: '후보를 조회할 수 없는 방 상태',
+            schema: { example: ROOM_CANDIDATES_INVALID_STATUS },
+        }),
+        ApiInternalServerErrorResponse({
+            description: '서버 오류',
+            schema: { example: ROOM_CANDIDATES_INTERNAL_SERVER_ERROR },
+        }),
+    );
+}
