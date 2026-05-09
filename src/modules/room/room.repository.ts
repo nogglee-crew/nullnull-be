@@ -9,7 +9,7 @@ import {
 
 type RoomTransactionClient = Pick<
     PrismaService,
-    'participant' | 'placeOption' | 'room' | 'timeOption'
+    'meeting' | 'participant' | 'placeOption' | 'room' | 'timeOption'
 >;
 
 @Injectable()
@@ -171,6 +171,28 @@ export class RoomRepository {
         });
     }
 
+    findRoomForConfirm(roomId: bigint) {
+        return this.prisma.room.findUnique({
+            where: { roomId },
+            select: {
+                roomId: true,
+                hostId: true,
+                status: true,
+                collectOrigin: true,
+                timeOptions: {
+                    select: {
+                        timeOptionId: true,
+                    },
+                },
+                placeOptions: {
+                    select: {
+                        placeOptionId: true,
+                    },
+                },
+            },
+        });
+    }
+
     replaceTimeOptions(
         tx: RoomTransactionClient,
         roomId: bigint,
@@ -238,6 +260,36 @@ export class RoomRepository {
             },
             data: {
                 status: RoomStatus.READY,
+            },
+        });
+    }
+
+    createMeeting(
+        tx: RoomTransactionClient,
+        params: {
+            roomId: bigint;
+            timeOptionId: bigint;
+            placeOptionId?: bigint | null;
+        },
+    ) {
+        return tx.meeting.create({
+            data: {
+                roomId: params.roomId,
+                timeOptionId: params.timeOptionId,
+                placeOptionId: params.placeOptionId ?? null,
+            },
+        });
+    }
+
+    markRoomConfirmed(tx: RoomTransactionClient, roomId: bigint, hostId: string) {
+        return tx.room.updateMany({
+            where: {
+                roomId,
+                hostId,
+                status: RoomStatus.READY,
+            },
+            data: {
+                status: RoomStatus.CONFIRMED,
             },
         });
     }

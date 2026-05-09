@@ -1,6 +1,7 @@
 import { Injectable, HttpStatus } from '@nestjs/common';
 import dayjs from 'dayjs';
 import { nanoid } from 'nanoid';
+import { ConfirmRoomRequestDto } from './dto/req/confirm-room.request.dto.js';
 import { CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
 import { CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
 import { ReadRoomCandidatesResponseDto } from './dto/res/read-room-candidates.response.dto.js';
@@ -205,6 +206,99 @@ export class RoomService {
             throw new AppException(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 '방 마감 중 오류가 발생했습니다.',
+                ErrorCode.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    // READY 상태의 방에서 선택한 후보 FK를 검증한 뒤 meeting을 생성하고 room을 CONFIRMED로 전이한다.
+    async confirmRoom(
+        roomId: bigint,
+        requesterId: string,
+        body: ConfirmRoomRequestDto,
+    ): Promise<void> {
+        const room = await this.roomRepository.findRoomForConfirm(roomId);
+
+        if (!room) {
+            throw new AppException(
+                HttpStatus.NOT_FOUND,
+                '존재하지 않는 방입니다.',
+                ErrorCode.ROOM_NOT_FOUND,
+            );
+        }
+
+        if (room.hostId !== requesterId) {
+            throw new AppException(
+                HttpStatus.FORBIDDEN,
+                '약속 확정 권한이 없습니다.',
+                ErrorCode.FORBIDDEN,
+            );
+        }
+
+        if (room.status !== RoomStatus.READY) {
+            throw new AppException(
+                HttpStatus.CONFLICT,
+                '확정할 수 없는 방 상태입니다.',
+                ErrorCode.INVALID_ROOM_STATUS,
+            );
+        }
+
+        const timeOptionId = BigInt(body.timeCandidateId);
+
+        // place 후보가 없는 방은 null로 확정할 수 있어야 하므로, body 값이 없으면 nullable FK로 정규화한다.
+        const placeOptionId =
+            body.placeCandidateId === undefined || body.placeCandidateId === null
+                ? null
+                : BigInt(body.placeCandidateId);
+
+        // 선택한 time 후보가 현재 room의 저장된 후보 집합에 실제로 속하는지 확인한다.
+        const hasTimeCandidate = room.timeOptions.some((o) => o.timeOptionId === timeOptionId);
+
+        if (!hasTimeCandidate) {
+            throw new AppException(
+                HttpStatus.BAD_REQUEST,
+                '유효하지 않은 후보입니다.',
+                ErrorCode.INVALID_CANDIDATE,
+            );
+        }
+
+        // place 후보가 있는 방은 반드시 그 room에 속한 후보 id 중 하나를 선택해야 한다.
+        const hasPlaceCandidate = room.placeOptions.some((o) => o.placeOptionId === placeOptionId);
+        if (!hasPlaceCandidate) {
+            throw new AppException(
+                HttpStatus.BAD_REQUEST,
+                '유효하지 않은 후보입니다.',
+                ErrorCode.INVALID_CANDIDATE,
+            );
+        }
+
+        try {
+            await this.roomRepository.withTransaction(async (tx) => {
+                const updatedRoom = await this.roomRepository.markRoomConfirmed(
+                    tx,
+                    roomId,
+                    requesterId,
+                );
+
+                if (updatedRoom.count !== 1) {
+                    throw new AppException(
+                        HttpStatus.CONFLICT,
+                        '확정할 수 없는 방 상태입니다.',
+                        ErrorCode.INVALID_ROOM_STATUS,
+                    );
+                }
+
+                await this.roomRepository.createMeeting(tx, {
+                    roomId,
+                    timeOptionId,
+                    placeOptionId,
+                });
+            });
+        } catch (error) {
+            if (error instanceof AppException) throw error;
+            throw new AppException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                '약속 확정 중 오류가 발생했습니다.',
                 ErrorCode.INTERNAL_SERVER_ERROR,
             );
         }

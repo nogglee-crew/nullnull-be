@@ -1,5 +1,6 @@
 import { applyDecorators } from '@nestjs/common';
 import {
+    ApiBadRequestResponse,
     ApiConflictResponse,
     ApiForbiddenResponse,
     ApiInternalServerErrorResponse,
@@ -190,6 +191,106 @@ export function ApiReadRoomCandidatesErrorResponses() {
         ApiInternalServerErrorResponse({
             description: '서버 오류',
             schema: { example: ROOM_CANDIDATES_INTERNAL_SERVER_ERROR },
+        }),
+    );
+}
+
+export const ROOM_CONFIRM_SUCCESS = {
+    statusCode: 200,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/confirm',
+    message: '약속이 확정되었습니다.',
+    data: null,
+    error: null,
+};
+
+export const ROOM_CONFIRM_INVALID_CANDIDATE = {
+    statusCode: 400,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/confirm',
+    message: '유효하지 않은 후보입니다.',
+    data: null,
+    error: 'INVALID_CANDIDATE',
+};
+
+export const ROOM_CONFIRM_UNAUTHORIZED = {
+    statusCode: 401,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/confirm',
+    message: '로그인이 필요합니다.',
+    data: null,
+    error: 'UNAUTHORIZED',
+};
+
+export const ROOM_CONFIRM_FORBIDDEN = {
+    statusCode: 403,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/confirm',
+    message: '약속 확정 권한이 없습니다.',
+    data: null,
+    error: 'FORBIDDEN',
+};
+
+export const ROOM_CONFIRM_NOT_FOUND = {
+    statusCode: 404,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/confirm',
+    message: '존재하지 않는 방입니다.',
+    data: null,
+    error: 'ROOM_NOT_FOUND',
+};
+
+export const ROOM_CONFIRM_INVALID_STATUS = {
+    statusCode: 409,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/confirm',
+    message: '확정할 수 없는 방 상태입니다.',
+    data: null,
+    error: 'INVALID_ROOM_STATUS',
+};
+
+export const ROOM_CONFIRM_INTERNAL_SERVER_ERROR = {
+    statusCode: 500,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms/1/confirm',
+    message: '약속 확정 중 오류가 발생했습니다.',
+    data: null,
+    error: 'INTERNAL_SERVER_ERROR',
+};
+
+export function ApiConfirmRoomSuccessResponse() {
+    return ApiOkResponse({
+        schema: {
+            example: ROOM_CONFIRM_SUCCESS,
+        },
+    });
+}
+
+export function ApiConfirmRoomErrorResponses() {
+    return applyDecorators(
+        ApiBadRequestResponse({
+            description: '유효하지 않은 후보',
+            schema: { example: ROOM_CONFIRM_INVALID_CANDIDATE },
+        }),
+        ApiUnauthorizedResponse({
+            description: '로그인 필요',
+            schema: { example: ROOM_CONFIRM_UNAUTHORIZED },
+        }),
+        ApiForbiddenResponse({
+            description: '약속 확정 권한 없음',
+            schema: { example: ROOM_CONFIRM_FORBIDDEN },
+        }),
+        ApiNotFoundResponse({
+            description: '존재하지 않는 방',
+            schema: { example: ROOM_CONFIRM_NOT_FOUND },
+        }),
+        ApiConflictResponse({
+            description: '확정할 수 없는 방 상태',
+            schema: { example: ROOM_CONFIRM_INVALID_STATUS },
+        }),
+        ApiInternalServerErrorResponse({
+            description: '서버 오류',
+            schema: { example: ROOM_CONFIRM_INTERNAL_SERVER_ERROR },
         }),
     );
 }
