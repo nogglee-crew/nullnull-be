@@ -19,7 +19,6 @@
     - `docs/exec-plans/completed/room-candidates-api-plan.md`
 - Open decisions:
     - room 식별자를 현재 구현 기준대로 `roomId`로 유지할지, 이후 room API 전체를 `slug`로 통일할지 확인 필요
-    - `collectOrigin=false`인 room에서 `placeCandidateId`를 필수로 받을지, nullable 선택으로 받을지 확정 필요
 
 ## Scope
 
@@ -53,7 +52,7 @@
     - body는 `timeCandidateId`, `placeCandidateId`를 받는다.
     - 프론트 후보 화면은 기본 선택값으로 rank 1을 잡고 보내더라도, 백엔드는 항상 id 기준으로 다시 검증한다.
     - `timeCandidateId`는 필수다.
-    - `placeCandidateId`는 현재 요구사항상 필수로 두되, `collectOrigin=false` room에서도 필수로 유지할지 다시 확인한다.
+    - `placeCandidateId`는 기본적으로 선택 후보 id를 받지만, `collectOrigin=false`로 place 후보가 생성되지 않은 room은 nullable로 허용한다.
     - verify: 프론트 기본 선택값이 rank 1이어도, 다른 id로 변경 후 보내는 시나리오가 동일하게 처리됨
 4. 선택한 후보의 소속을 검증한다.
     - `timeCandidateId`가 해당 room의 `time_options`인지 확인한다.
@@ -68,8 +67,8 @@
 6. 상태 전이와 저장 순서를 정리한다.
     - 하나의 트랜잭션 안에서
         - 선택 후보 검증
-        - `meetings` row 생성
         - `rooms.status = CONFIRMED`
+        - `meetings` row 생성
           순서로 처리한다.
     - meeting 생성에 실패하면 room 상태를 바꾸지 않는다.
     - verify: meeting 생성 실패 시 partial update가 남지 않는다.
@@ -78,10 +77,11 @@
     - 성공 메시지는 `약속이 확정되었습니다.`
     - `400/401/403/404/409/500` 문서화
     - verify: Swagger example과 실제 응답 shape가 일치함
+    - verify: 별도 response DTO 없이 `CustomResponse<null>`로 성공 응답을 반환한다.
 
 ## Risks
 
-- `collectOrigin=false`인 room은 `place_options`가 비어 있을 수 있으므로, 확정 시 `placeCandidateId`를 어떻게 다룰지 정책이 불명확하면 API 계약이 흔들릴 수 있다.
+- `collectOrigin=false`인 room은 `place_options`가 비어 있으므로, 프론트가 `placeCandidateId`를 보내지 않는다는 전제와 서버의 nullable 허용 정책이 어긋나면 불필요한 400이 생길 수 있다.
 - 현재 `meetings`는 후보 FK만 저장하므로, 이후 후보를 다시 생성하거나 삭제하는 흐름이 생기면 확정 meeting 정합성 정책을 다시 정해야 한다.
 - room 식별자가 이후 `slug`로 통일되면 confirm/candidates/ready 경로와 Swagger 문서를 함께 조정해야 한다.
 - 프론트 기본 선택값이 rank 1이라도, 백엔드는 rank가 아니라 id 검증만 하므로 id/rank 불일치 상태를 허용할지 확인이 필요하다.
@@ -108,10 +108,11 @@
 - 2026-05-09: room ready는 시간/장소 후보를 이미 생성해 저장하므로, confirm API는 후보를 다시 계산하지 않고 선택된 후보 FK만 검증해 meeting을 생성한다.
 - 2026-05-09: 프론트 기본 선택값이 rank 1이더라도, confirm API는 rank가 아니라 `timeCandidateId`, `placeCandidateId`의 room 소속 여부만 검증한다.
 - 2026-05-09: `time_options`는 `date + start_at + end_at` 구조로 저장되지만, `meetings`는 해당 후보 FK를 직접 참조하므로 confirm API에서 별도 날짜/시간 조합은 만들지 않는다.
+- 2026-05-09: `collectOrigin=false`인 room은 `place_options`가 없을 수 있으므로, confirm API는 `placeCandidateId`를 nullable로 허용하고 `Meeting.placeOptionId`도 null 저장을 허용한다.
 
 ## Outcome
 
-- Status: active
+- Status: completed
 - Follow-up:
     - 확정 meeting 조회 API 구현
     - room 식별자 `slug` 통일 여부 결정
