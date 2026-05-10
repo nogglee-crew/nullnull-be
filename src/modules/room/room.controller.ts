@@ -20,6 +20,7 @@ import { SuccessResponseInterceptor } from '../../common/interceptor/success-res
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter.js';
 import { ApiCustomResponseDecorator } from '../../common/utils/decorators/api-custom-response.decorator.js';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard.js';
+import { type AuthenticatedRequest } from '../../common/type/auth-request.interface.js';
 
 @ApiTags('방(Room)')
 @ApiBearerAuth('accessToken')
@@ -38,10 +39,10 @@ export class RoomController {
     @UseGuards(JwtAuthGuard)
     @Post()
     async createRoom(
-        @Req() req: any,
+        @Req() req: AuthenticatedRequest,
         @Body() body: CreateRoomRequestDto,
     ): Promise<CustomResponse<CreateRoomResponseDto>> {
-        const hostId = req.user.userId;
+        const hostId = req.authUser.id;
 
         const result = await this.roomService.createRoom(hostId, body);
 

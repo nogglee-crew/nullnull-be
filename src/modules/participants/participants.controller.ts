@@ -6,6 +6,7 @@ import {
     HttpStatus,
     Inject,
     Param,
+    Patch,
     Post,
     Req,
     Res,
@@ -19,14 +20,20 @@ import { HttpExceptionFilter } from '../../common/filters/http-exception.filter.
 import { SuccessResponseInterceptor } from '../../common/interceptor/success-response.interceptor.js';
 import { ApiCustomResponseDecorator } from '../../common/utils/decorators/api-custom-response.decorator.js';
 import CustomResponse from '../../common/response/custom-response.js';
-import { type JoinParticipantRequestDto } from './dto/req/join-participant.request.dto.js';
+import { JoinParticipantRequestDto } from './dto/req/join-participant.request.dto.js';
+import { SubmitParticipationRequestDto } from './dto/req/submit-participation.request.dto.js';
 import { JoinParticipantResponseDto } from './dto/res/join-participant.response.dto.js';
+import { SubmitParticipationResponseDto } from './dto/res/submit-participation.response.dto.js';
 import { ParticipantsService } from './participants.service.js';
-import { ApiJoinParticipantErrorResponses } from '../../swagger/participant.swagger.js';
+import {
+    ApiJoinParticipantErrorResponses,
+    ApiSubmitParticipationErrorResponses,
+} from '../../swagger/participant.swagger.js';
+import { type OptionalAuthenticatedRequest } from '../../common/type/auth-request.interface.js';
 
 @ApiTags('참여자(Participants)')
 @ApiBearerAuth('accessToken')
-@Controller('/rooms/:roomId/participants')
+@Controller()
 @UseInterceptors(SuccessResponseInterceptor)
 @UseFilters(HttpExceptionFilter)
 export class ParticipantsController {
@@ -51,10 +58,10 @@ export class ParticipantsController {
     @ApiJoinParticipantErrorResponses()
     @UseGuards(OptionalJwtAuthGuard)
     @HttpCode(HttpStatus.OK)
-    @Post()
+    @Post('/rooms/:roomId/participants')
     async joinRoom(
         @Param('roomId') roomId: string,
-        @Req() req: any,
+        @Req() req: OptionalAuthenticatedRequest,
         @Headers('cookie') cookie: string | undefined,
         @Body() body: JoinParticipantRequestDto,
         @Res({ passthrough: true }) response: any,
@@ -70,6 +77,43 @@ export class ParticipantsController {
         return new CustomResponse<JoinParticipantResponseDto>(
             result.data,
             '참여자 등록이 완료되었습니다.',
+        );
+    }
+
+    @ApiOperation({
+        summary: '참여 정보 저장 API',
+        description: '참여자가 자신의 불가능 시간과 출발지를 제출하거나 수정합니다.',
+    })
+    @ApiHeader({
+        name: 'cookie',
+        required: false,
+        description:
+            '선택값. 비회원 참여자인 경우 `participant_uuid_{roomSlug}` 쿠키로 수정 권한을 확인합니다.',
+    })
+    @ApiCustomResponseDecorator(SubmitParticipationResponseDto, {
+        message: '참여 정보가 저장되었습니다.',
+        path: '/participants/1/participation',
+    })
+    @ApiSubmitParticipationErrorResponses()
+    @UseGuards(OptionalJwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    @Patch('/participants/:participantId/participation')
+    async submitParticipation(
+        @Param('participantId') participantId: string,
+        @Req() req: OptionalAuthenticatedRequest,
+        @Headers('cookie') cookie: string | undefined,
+        @Body() body: SubmitParticipationRequestDto,
+    ): Promise<CustomResponse<SubmitParticipationResponseDto>> {
+        const result = await this.participantsService.submitParticipation(
+            participantId,
+            body,
+            req.authUser,
+            cookie,
+        );
+
+        return new CustomResponse<SubmitParticipationResponseDto>(
+            result,
+            '참여 정보가 저장되었습니다.',
         );
     }
 }

@@ -17,7 +17,7 @@
     - `docs/SECURITY.md`
     - `docs/exec-plans/completed/room-join-api-plan.md`
 - Open decisions:
-    - `blockedSlots` 저장 구조를 `participants` 모듈 안에서 바로 처리할지, 별도 availability 축으로 미리 분리할지
+    - 없음
 
 ## Scope
 
@@ -41,7 +41,7 @@
     - verify: guest도 자신의 participant만 수정 가능하고, 타인의 participantId만 알아도 수정할 수 없다는 규칙이 계획에 명시됨
 2. 입력 계약과 저장 모델을 정리한다.
     - `blockedSlots[]`와 `origin` DTO를 정의한다.
-    - 불가능 시간과 출발지의 실제 DB 저장 구조를 기존 participant/연관 테이블 기준으로 확정한다.
+    - 요청은 날짜별 `slotIndexes[]`를 받고, 저장은 `blocked_slots`에 한 슬롯당 한 row로 펼쳐 저장한다.
     - verify: DTO, repository 저장 단위, overwrite/update 정책이 문서에 명시됨
 3. 참여 가능 상태와 수정 권한을 검증한다.
     - participant 존재 여부 확인
@@ -64,7 +64,6 @@
 ## Risks
 
 - guest 수정 권한은 `participantId`만으로 판별할 수 없어서 room slug 기반 cookie 검증이 추가로 필요하다.
-- `blockedSlots` 저장 구조가 아직 명확하지 않으면 availability 축과 participants 축의 경계가 다시 흔들릴 수 있다.
 - 수정 API와 최초 제출 API를 분리하지 않는 만큼 overwrite 정책을 명확히 두지 않으면 프론트와 충돌할 수 있다.
 
 ## Validation
@@ -87,10 +86,12 @@
 
 - 2026-05-07: 방 참여 직후 참여 정보 저장이 방 마감보다 선행되므로, 방 마감 API 전에 이 유스케이스를 먼저 구현한다.
 - 2026-05-07: path parameter는 요구사항대로 `participantId`를 사용하되, guest 권한 검증은 cookie와 함께 확인한다.
+- 2026-05-08: `blockedSlots`는 선택값으로 두고, 요청은 날짜별 `slotIndexes[]`를 받아 저장 시 한 슬롯당 한 row로 펼친다.
+- 2026-05-08: 출발지는 room의 `collectOrigin=true`일 때만 필수로 검증한다.
 
 ## Outcome
 
-- Status: active
+- Status: completed
 - Follow-up:
     - 방 조회 API의 `mySubmission` 구현
     - 방 마감 API 구현

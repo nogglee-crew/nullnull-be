@@ -1,6 +1,7 @@
 import {
     ApiBadRequestResponse,
     ApiConflictResponse,
+    ApiForbiddenResponse,
     ApiInternalServerErrorResponse,
     ApiNotFoundResponse,
 } from '@nestjs/swagger';
@@ -97,6 +98,76 @@ export function ApiJoinParticipantErrorResponses() {
         ApiInternalServerErrorResponse({
             description: '서버 오류',
             schema: { example: PARTICIPANT_JOIN_INTERNAL_SERVER_ERROR },
+        }),
+    );
+}
+
+export const PARTICIPANT_SUBMIT_INVALID_REQUEST = {
+    statusCode: 400,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/participants/1/participation',
+    message: '유효하지 않은 요청입니다.',
+    data: null,
+    error: 'BAD_REQUEST',
+};
+
+export const PARTICIPANT_SUBMIT_FORBIDDEN = {
+    statusCode: 403,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/participants/1/participation',
+    message: '수정 권한이 없습니다.',
+    data: null,
+    error: 'FORBIDDEN',
+};
+
+export const PARTICIPANT_SUBMIT_NOT_FOUND = {
+    statusCode: 404,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/participants/1/participation',
+    message: '존재하지 않는 참여자입니다.',
+    data: null,
+    error: 'PARTICIPANT_NOT_FOUND',
+};
+
+export const PARTICIPANT_SUBMIT_INVALID_ROOM_STATUS = {
+    statusCode: 409,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/participants/1/participation',
+    message: '참여 정보를 제출할 수 없는 방 상태입니다.',
+    data: null,
+    error: 'INVALID_ROOM_STATUS',
+};
+
+export const PARTICIPANT_SUBMIT_INTERNAL_SERVER_ERROR = {
+    statusCode: 500,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/participants/1/participation',
+    message: '참여 정보 저장 중 오류가 발생했습니다.',
+    data: null,
+    error: 'INTERNAL_SERVER_ERROR',
+};
+
+export function ApiSubmitParticipationErrorResponses() {
+    return applyDecorators(
+        ApiBadRequestResponse({
+            description: '유효하지 않은 요청',
+            schema: { example: PARTICIPANT_SUBMIT_INVALID_REQUEST },
+        }),
+        ApiForbiddenResponse({
+            description: '수정 권한 없음',
+            schema: { example: PARTICIPANT_SUBMIT_FORBIDDEN },
+        }),
+        ApiNotFoundResponse({
+            description: '존재하지 않는 참여자',
+            schema: { example: PARTICIPANT_SUBMIT_NOT_FOUND },
+        }),
+        ApiConflictResponse({
+            description: '참여 정보를 제출할 수 없는 방 상태',
+            schema: { example: PARTICIPANT_SUBMIT_INVALID_ROOM_STATUS },
+        }),
+        ApiInternalServerErrorResponse({
+            description: '서버 오류',
+            schema: { example: PARTICIPANT_SUBMIT_INTERNAL_SERVER_ERROR },
         }),
     );
 }

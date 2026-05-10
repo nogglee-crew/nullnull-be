@@ -24,6 +24,7 @@ import { AuthSyncResponseDto } from './dto/res/auth-sync.response.dto.js';
 import { ApiCustomResponseDecorator } from '../../common/utils/decorators/api-custom-response.decorator.js';
 import { JwtAuthGuard } from './guard/jwt-auth.guard.js';
 import CustomResponse from '../../common/response/custom-response.js';
+import { type AuthenticatedRequest } from '../../common/type/auth-request.interface.js';
 
 @ApiTags('인증(Auth)')
 @ApiBearerAuth('accessToken')
@@ -52,7 +53,7 @@ export class AuthController {
     @HttpCode(HttpStatus.OK)
     @Post('sync')
     async sync(
-        @Req() req: any,
+        @Req() req: AuthenticatedRequest,
         @Headers() headers: AuthSyncRequestDto,
     ): Promise<CustomResponse<AuthSyncResponseDto>> {
         const { cookie } = headers;
@@ -74,7 +75,9 @@ export class AuthController {
     })
     @HttpCode(HttpStatus.OK)
     @Post('consent')
-    async consent(@Req() req: any): Promise<CustomResponse<AuthConsentResponseDto>> {
+    async consent(
+        @Req() req: AuthenticatedRequest,
+    ): Promise<CustomResponse<AuthConsentResponseDto>> {
         const result = await this.authService.recordConsent(req.authUser);
 
         return new CustomResponse<AuthConsentResponseDto>(result, '약관 동의가 완료되었습니다.');
