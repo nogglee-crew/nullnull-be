@@ -145,4 +145,11 @@ export class ParticipantsRepository {
             data: { status },
         });
     }
+
+    clearParticipationData(tx: ParticipantsTransactionClient, participantId: bigint) {
+        return Promise.all([
+            tx.blockedSlot.deleteMany({ where: { participantId } }),
+            tx.origin.deleteMany({ where: { participantId } }),
+        ]);
+    }
 }
