@@ -9,6 +9,9 @@ import {
     HttpCode,
     Req,
     Inject,
+    Get,
+    Param,
+    Headers,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
@@ -20,6 +23,9 @@ import { SuccessResponseInterceptor } from '../../common/interceptor/success-res
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter.js';
 import { ApiCustomResponseDecorator } from '../../common/utils/decorators/api-custom-response.decorator.js';
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard.js';
+import { RoomDetailResponseDto } from './dto/res/room-detail.response.dto.js';
+import { OptionalJwtAuthGuard } from '../auth/guard/optional-jwt-auth.guard.js';
+import { type AuthenticatedRequest } from '../../common/type/auth-request.interface.js';
 
 @ApiTags('방(Room)')
 @ApiBearerAuth('accessToken')
@@ -46,5 +52,24 @@ export class RoomController {
         const result = await this.roomService.createRoom(hostId, body);
 
         return new CustomResponse<CreateRoomResponseDto>(result, '방이 생성되었습니다.');
+    }
+
+    @ApiOperation({
+        summary: '방 상세 정보 조회 API',
+        description:
+            '공유 링크(slug)를 통해 방의 상세 정보 및 나의 참여 상태를 조회합니다. 로그인 여부 및 쿠키에 따라 역할이 판별됩니다.',
+    })
+    @ApiCustomResponseDecorator(RoomDetailResponseDto)
+    @UseGuards(OptionalJwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    @Get('/:slug')
+    async getRoomDetail(
+        @Param('slug') slug: string,
+        @Req() req: AuthenticatedRequest,
+        @Headers('cookie') cookie: string | undefined,
+    ): Promise<CustomResponse<RoomDetailResponseDto>> {
+        const result = await this.roomService.getRoomDetail(slug, req.authUser, cookie);
+
+        return new CustomResponse<RoomDetailResponseDto>(result, '방 조회에 성공했습니다.');
     }
 }
