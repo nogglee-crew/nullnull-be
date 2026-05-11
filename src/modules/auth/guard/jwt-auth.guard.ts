@@ -21,7 +21,7 @@ export class JwtAuthGuard implements CanActivate {
         return true;
     }
 
-    private async verifyAccessToken(
+    protected async verifyAccessToken(
         authorizationHeader: string | undefined,
     ): Promise<SupabaseUser> {
         if (!authorizationHeader) {
@@ -57,7 +57,7 @@ export class JwtAuthGuard implements CanActivate {
     }
 
     // TODO: Supabase client 초기화는 추후 별도 provider/factory로 분리 검토.
-    private getSupabase(): SupabaseClient {
+    protected getSupabase(): SupabaseClient {
         if (this.supabase) return this.supabase;
 
         this.supabase = createClient(
@@ -75,7 +75,7 @@ export class JwtAuthGuard implements CanActivate {
         return this.supabase;
     }
 
-    private requireEnv(key: string): string {
+    protected requireEnv(key: string): string {
         const value = process.env[key];
         if (!value) throw new Error(`${key} is not set`);
         return value;
