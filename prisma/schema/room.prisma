@@ -27,20 +27,23 @@ model Room {
 }
 
 model Participant {
-  participantId   BigInt            @id @default(autoincrement()) @map("participant_id")
-  roomId          BigInt            @map("room_id")
-  userId          String?           @map("user_id") @db.Uuid
-  participantUuid String            @unique @default(uuid()) @map("participant_uuid") @db.Uuid
-  role            ParticipantRole   @default(MEMBER)
-  status          ParticipantStatus @default(JOINED)
-  nickname        String            @db.VarChar(50)
-  decisionAt      DateTime?         @map("decision_at") @db.Timestamp(6)
-  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
+  participantId    BigInt            @id @default(autoincrement()) @map("participant_id")
+  roomId           BigInt            @map("room_id")
+  userId           String?           @map("user_id") @db.Uuid
+  participantUuid  String?            @unique @map("participant_uuid") @db.Uuid
+  termsVersionId   BigInt?           @map("terms_version_id")
+  privacyVersionId BigInt?           @map("privacy_version_id")
+  agreedAt         DateTime?         @map("agreed_at") @db.Timestamp(6)
+  role             ParticipantRole   @default(MEMBER)
+  status           ParticipantStatus @default(JOINED)
+  nickname         String            @db.VarChar(50)
+  decisionAt       DateTime?         @map("decision_at") @db.Timestamp(6)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
 
-  room         Room          @relation(fields: [roomId], references: [roomId])
-  user         User?         @relation(fields: [userId], references: [userId])
-  origin       Origin?
-  blockedSlots BlockedSlot[]
+  room           Room           @relation(fields: [roomId], references: [roomId])
+  user           User?          @relation(fields: [userId], references: [userId])
+  origin         Origin?
+  blockedSlots   BlockedSlot[]
 
   @@index([roomId])
   @@index([userId])

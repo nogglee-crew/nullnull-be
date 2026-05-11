@@ -1,8 +1,9 @@
 model TimeOption {
   timeOptionId    BigInt   @id @default(autoincrement()) @map("time_option_id")
   roomId          BigInt   @map("room_id")
-  startAt         DateTime @map("start_at") @db.Timestamp(6)
-  endAt           DateTime @map("end_at") @db.Timestamp(6)
+  date            DateTime @db.Date
+  startAt         DateTime @map("start_at") @db.Time(6)
+  endAt           DateTime @map("end_at") @db.Time(6)
   availableCount  Int      @map("available_count")
   durationMinutes Int      @map("duration_minutes")
   rank            Int

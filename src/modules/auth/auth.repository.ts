@@ -26,10 +26,7 @@ export class AuthRepository {
 
     createUser(tx: AuthTransactionClient, userId: string, nickname: string): Promise<User> {
         return tx.user.create({
-            data: {
-                userId,
-                nickname,
-            },
+            data: { userId, nickname },
         });
     }
 
@@ -43,9 +40,7 @@ export class AuthRepository {
                 participantUuid: { in: participantUuids },
                 userId: null,
             },
-            data: {
-                userId,
-            },
+            data: { userId },
         });
     }
 
@@ -65,11 +60,7 @@ export class AuthRepository {
         privacyVersionId: bigint,
     ) {
         return tx.userConsent.findFirst({
-            where: {
-                userId,
-                termsVersionId,
-                privacyVersionId,
-            },
+            where: { userId, termsVersionId, privacyVersionId },
         });
     }
 
@@ -85,14 +76,10 @@ export class AuthRepository {
         userId: string,
         termsVersionId: bigint,
         privacyVersionId: bigint,
+        agreedAt: Date,
     ) {
         return tx.userConsent.create({
-            data: {
-                userId,
-                termsVersionId,
-                privacyVersionId,
-                agreedAt: new Date(),
-            },
+            data: { userId, termsVersionId, privacyVersionId, agreedAt },
         });
     }
 }

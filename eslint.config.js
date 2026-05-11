@@ -58,4 +58,16 @@ export default tseslint.config(
             'no-undef': 'off',
         },
     },
+    {
+        files: [
+            'src/**/*.service.ts',
+            'src/**/*.controller.ts',
+            'src/**/*.guard.ts',
+            'src/**/*.repository.ts',
+            'src/**/*.module.ts',
+        ],
+        rules: {
+            '@typescript-eslint/consistent-type-imports': 'off',
+        },
+    },
 );
