@@ -136,8 +136,8 @@ export class AuthService {
             );
         }
 
-        const collectingRoomCount = await this.authRepository.countCollectingRoomsByHost(userId);
-        if (collectingRoomCount > 0) {
+        const activeRoomCount = await this.authRepository.countCollectingRoomsByHost(userId);
+        if (activeRoomCount > 0) {
             throw new AppException(
                 HttpStatus.CONFLICT,
                 '모집중인 모임이 있어 탈퇴할 수 없습니다. 먼저 종료해 주세요.',
