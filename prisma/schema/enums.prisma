@@ -3,6 +3,11 @@ enum PolicyType {
   PRIVACY
 }
 
+enum UserStatus {
+  ACTIVE
+  DELETED
+}
+
 enum RoomStatus {
   COLLECTING
   READY

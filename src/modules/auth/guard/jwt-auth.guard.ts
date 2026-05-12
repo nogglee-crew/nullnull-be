@@ -1,4 +1,10 @@
-import { HttpStatus, type CanActivate, type ExecutionContext, Injectable } from '@nestjs/common';
+import {
+    HttpStatus,
+    Inject,
+    type CanActivate,
+    type ExecutionContext,
+    Injectable,
+} from '@nestjs/common';
 import {
     createClient,
     type SupabaseClient,
@@ -6,10 +12,14 @@ import {
 } from '@supabase/supabase-js';
 import { AppException } from '../../../common/exception/app.exception.js';
 import { ErrorCode } from '../../../common/exception/error-codes.js';
+import { AuthRepository } from '../auth.repository.js';
+import { UserStatus } from '../../../generated/prisma/enums.js';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
     private supabase: SupabaseClient | null = null;
+
+    constructor(@Inject(AuthRepository) private readonly authRepository: AuthRepository) {}
 
     async canActivate(context: ExecutionContext): Promise<boolean> {
         const request = context.switchToHttp().getRequest();
@@ -49,6 +59,15 @@ export class JwtAuthGuard implements CanActivate {
             throw new AppException(
                 HttpStatus.UNAUTHORIZED,
                 '인증 정보가 유효하지 않습니다.',
+                ErrorCode.UNAUTHORIZED,
+            );
+        }
+
+        const serviceUser = await this.authRepository.findUserByIdWithoutTx(user.id);
+        if (serviceUser?.status === UserStatus.DELETED) {
+            throw new AppException(
+                HttpStatus.UNAUTHORIZED,
+                '탈퇴한 사용자입니다.',
                 ErrorCode.UNAUTHORIZED,
             );
         }

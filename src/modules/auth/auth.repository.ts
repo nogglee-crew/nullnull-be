@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { User } from '../../generated/prisma/client.js';
 import { PrismaService } from '../../database/prisma.service.js';
+import { RoomStatus, UserStatus } from '../../generated/prisma/enums.js';
 
 type AuthTransactionClient = Pick<
     PrismaService,
-    'participant' | 'policyVersion' | 'user' | 'userConsent'
+    'participant' | 'policyVersion' | 'room' | 'user' | 'userConsent'
 >;
 
 @Injectable()
@@ -24,9 +25,24 @@ export class AuthRepository {
         });
     }
 
+    findUserByIdWithoutTx(userId: string) {
+        return this.prisma.user.findUnique({
+            where: { userId },
+        });
+    }
+
     createUser(tx: AuthTransactionClient, userId: string, nickname: string): Promise<User> {
         return tx.user.create({
-            data: { userId, nickname },
+            data: { userId, nickname, status: UserStatus.ACTIVE },
+        });
+    }
+
+    countCollectingRoomsByHost(userId: string) {
+        return this.prisma.room.count({
+            where: {
+                hostId: userId,
+                status: RoomStatus.COLLECTING,
+            },
         });
     }
 
@@ -80,6 +96,20 @@ export class AuthRepository {
     ) {
         return tx.userConsent.create({
             data: { userId, termsVersionId, privacyVersionId, agreedAt },
+        });
+    }
+
+    softDeleteUser(tx: AuthTransactionClient, userId: string) {
+        return tx.user.update({
+            where: { userId },
+            data: { status: UserStatus.DELETED },
+        });
+    }
+
+    detachUserParticipants(tx: AuthTransactionClient, userId: string) {
+        return tx.participant.updateMany({
+            where: { userId },
+            data: { userId: null },
         });
     }
 }

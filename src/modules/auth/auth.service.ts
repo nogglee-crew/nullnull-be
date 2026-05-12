@@ -2,6 +2,7 @@ import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import type { User } from '../../generated/prisma/client.js';
 import { PolicyType } from '../../generated/prisma/client.js';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
+import { UserStatus } from '../../generated/prisma/enums.js';
 import { ErrorCode } from '../../common/exception/error-codes.js';
 import { AppException } from '../../common/exception/app.exception.js';
 import { type AuthSyncResponseDto } from './dto/res/auth-sync.response.dto.js';
@@ -118,6 +119,42 @@ export class AuthService {
             throw new AppException(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 '약관 동의 처리 중 오류가 발생했습니다.',
+                ErrorCode.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    // INFO: 로그인 사용자를 soft delete 처리하고, 연결된 participant를 익명 기록으로 남기기 위해 userId를 해제한다.
+    async withdrawAccount(userId: string): Promise<void> {
+        const user = await this.authRepository.findUserByIdWithoutTx(userId);
+
+        if (!user || user.status === UserStatus.DELETED) {
+            throw new AppException(
+                HttpStatus.NOT_FOUND,
+                '존재하지 않는 사용자입니다.',
+                ErrorCode.USER_NOT_FOUND,
+            );
+        }
+
+        const activeRoomCount = await this.authRepository.countCollectingRoomsByHost(userId);
+        if (activeRoomCount > 0) {
+            throw new AppException(
+                HttpStatus.CONFLICT,
+                '모집중인 모임이 있어 탈퇴할 수 없습니다. 먼저 종료해 주세요.',
+                ErrorCode.ACTIVE_ROOM_EXISTS,
+            );
+        }
+
+        try {
+            await this.authRepository.withTransaction(async (tx) => {
+                await this.authRepository.detachUserParticipants(tx, userId);
+                await this.authRepository.softDeleteUser(tx, userId);
+            });
+        } catch (error) {
+            if (error instanceof AppException) throw error;
+            throw new AppException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                '회원 탈퇴 처리 중 오류가 발생했습니다.',
                 ErrorCode.INTERNAL_SERVER_ERROR,
             );
         }
