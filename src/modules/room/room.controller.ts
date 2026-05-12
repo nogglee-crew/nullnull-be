@@ -11,7 +11,6 @@ import {
     Req,
     Inject,
     Get,
-    Param,
     Headers,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -26,7 +25,6 @@ import { ApiCustomResponseDecorator } from '../../common/utils/decorators/api-cu
 import { JwtAuthGuard } from '../auth/guard/jwt-auth.guard.js';
 import { RoomDetailResponseDto } from './dto/res/room-detail.response.dto.js';
 import { OptionalJwtAuthGuard } from '../auth/guard/optional-jwt-auth.guard.js';
-import { type AuthenticatedRequest } from '../../common/type/auth-request.interface.js';
 import { type AuthenticatedRequest } from '../../common/type/auth-request.interface.js';
 import {
     ApiReadyRoomErrorResponses,
@@ -78,6 +76,9 @@ export class RoomController {
         const result = await this.roomService.getRoomDetail(slug, req.authUser, cookie);
 
         return new CustomResponse<RoomDetailResponseDto>(result, '방 조회에 성공했습니다.');
+    }
+
+    @ApiOperation({
         summary: '방 마감 및 후보 생성 API',
         description: '방장이 참여자 입력 수집을 마감하고 시간/장소 후보를 생성합니다.',
     })

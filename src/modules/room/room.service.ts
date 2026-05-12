@@ -1,5 +1,5 @@
-import { Injectable, HttpStatus } from '@nestjs/common';
-import { type PrismaService } from '../../database/prisma.service.js';
+import { Injectable, HttpStatus, Inject } from '@nestjs/common';
+import { PrismaService } from '../../database/prisma.service.js';
 import { TimeUtil } from '../../common/utils/time.util.js';
 import { AppException } from '../../common/exception/app.exception.js';
 import { ErrorCode } from '../../common/exception/error-codes.js';
@@ -11,22 +11,17 @@ import {
 } from '../../generated/prisma/enums.js';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
-import { type CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
-import { type CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
-import dayjs from 'dayjs';
-import { nanoid } from 'nanoid';
 import { CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
 import { CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
-import { AppException } from '../../common/exception/app.exception.js';
-import { ErrorCode } from '../../common/exception/error-codes.js';
-import { ParticipantRole, RoomStatus } from '../../generated/prisma/enums.js';
-import { TimeUtil } from '../../common/utils/time.util.js';
 import { RoomPlaceCandidateService } from './room-place-candidate.service.js';
 import { RoomRepository } from './room.repository.js';
+import dayjs from 'dayjs';
 
 @Injectable()
 export class RoomService {
     constructor(
+        @Inject(PrismaService)
+        private readonly prisma: PrismaService,
         private readonly roomRepository: RoomRepository,
         private readonly roomPlaceCandidateService: RoomPlaceCandidateService,
     ) {}
@@ -94,27 +89,34 @@ export class RoomService {
 
         try {
             // 4. DB 저장 (트랜잭션: 방 생성 + 호스트 참여자 등록)
-            const result = await this.roomRepository.withTransaction(async (tx) => {
-                const room = await this.roomRepository.createRoom(tx, {
-                    hostId,
-                    slug,
-                    name,
-                    description: body.description,
-                    category: body.category,
-                    dateStart: TimeUtil.toUtcDateOnly(dateStart),
-                    dateEnd: TimeUtil.toUtcDateOnly(dateEnd),
-                    availableDays: body.availableDays,
-                    timeStart: TimeUtil.parseTimeToDate(timeStart),
-                    timeEnd: TimeUtil.parseTimeToDate(timeEnd),
-                    deadlineAt: deadlineKst.toDate(),
-                    collectOrigin: body.collectOrigin ?? false,
+            const result = await this.prisma.$transaction(async (tx) => {
+                const room = await tx.room.create({
+                    data: {
+                        hostId,
+                        slug,
+                        name: name,
+                        description: body.description,
+                        category: body.category,
+                        status: RoomStatus.COLLECTING,
+                        dateStart: startKst.toDate(),
+                        dateEnd: endKst.toDate(),
+                        availableDays: body.availableDays as any, // JSON 타입 대응
+                        timeStart: TimeUtil.parseTimeToDate(timeStart), // 30분 단위 시간 객체
+                        timeEnd: TimeUtil.parseTimeToDate(timeEnd), // 30분 단위 시간 객체
+                        deadlineAt: deadlineKst.toDate(),
+                        collectOrigin: body.collectOrigin ?? false,
+                    },
                 });
 
-                await this.roomRepository.createHostParticipant(tx, {
-                    roomId: room.roomId,
-                    userId: hostId,
-                    role: ParticipantRole.HOST,
-                    nickname: '방장',
+                // 생성자를 HOST 역할의 참여자로 자동 등록
+                await tx.participant.create({
+                    data: {
+                        roomId: room.roomId,
+                        userId: hostId,
+                        role: ParticipantRole.HOST,
+                        status: ParticipantStatus.JOINED,
+                        nickname: '방장',
+                    },
                 });
 
                 return room;
@@ -123,6 +125,8 @@ export class RoomService {
             return { slug: result.slug };
         } catch (error) {
             if (error instanceof AppException) throw error;
+
+            console.error('Room Creation Failed:', error);
             throw new AppException(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 '방 생성 중 오류가 발생했습니다.',
@@ -192,7 +196,11 @@ export class RoomService {
             const consentRequired = await this.checkConsentRequired(viewerRole, authUser);
 
             // 5. 방 상태에 따른 배지 및 문구
-            const { badge, text } = this.resolveRoomDisplay(room.status, viewerRole);
+            const { badge, text } = this.resolveRoomDisplay(
+                room.status,
+                viewerRole,
+                room.deadlineAt,
+            );
 
             // 6. 응답 데이터
             return {
@@ -204,6 +212,7 @@ export class RoomService {
                     consentRequired,
                 },
                 room: {
+                    roomId: Number(room.roomId),
                     slug: room.slug,
                     name: room.name,
                     description: room.description,
@@ -313,39 +322,38 @@ export class RoomService {
     }
 
     // 방 상태 및 역할에 따른 화면 표시 정보
-    private resolveRoomDisplay(status: RoomStatus, role: string) {
+    private resolveRoomDisplay(status: RoomStatus, role: string, deadlineAt: Date) {
+        // 1. 모집중 (COLLECTING)
         if (status === RoomStatus.COLLECTING) {
+            // 날짜 포맷
+            const formattedDeadline = TimeUtil.formatKst(deadlineAt, 'M월 D일');
+
             return {
-                badge: '진행중',
-                // 방장에게는 대기 문구를, 참여자에게는 입력 문구를 보여줌
-                text:
-                    role === 'HOST'
-                        ? '친구들의 입력을 기다리고 있어요'
-                        : '지금 시간을 입력해주세요!',
+                badge: '모집중',
+                text: `${formattedDeadline} 모집이 마감돼요`,
             };
         }
 
+        // 2. 마감 (READY) - 수집은 끝났으나 확정 전
         if (status === RoomStatus.READY) {
             return {
-                badge: '수집완료',
-                // 방장에게는 확정 권유를, 참여자에게는 대기 안내를 보여줌
-                text:
-                    role === 'HOST'
-                        ? '약속 시간을 확정해주세요!'
-                        : '모임장의 확정을 기다리고 있어요',
+                badge: '마감',
+                text: '모임장의 확정을 기다리고 있어요',
             };
         }
 
+        // 3. 확정 (CONFIRMED)
         if (status === RoomStatus.CONFIRMED) {
             return {
                 badge: '확정',
-                text: '약속이 확정되었습니다!',
+                text: '모임이 확정되었어요',
             };
         }
 
+        // 4. 종료 (CLOSED)
         return {
             badge: '종료',
-            text: '종료된 방입니다.',
+            text: '종료된 모임이에요',
         };
     }
 
@@ -365,6 +373,7 @@ export class RoomService {
             joinedCount: participants.filter((p) => p.status === ParticipantStatus.JOINED).length,
             submittedRatio: ratio,
         };
+    }
     // 방장을 검증한 뒤 제출 데이터를 바탕으로 시간/장소 후보를 생성하고 방을 READY로 전이한다.
     async readyRoom(roomId: bigint, requesterId: string): Promise<void> {
         const room = await this.roomRepository.findRoomForReady(roomId);
