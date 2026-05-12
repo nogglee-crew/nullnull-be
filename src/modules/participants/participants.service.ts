@@ -186,8 +186,8 @@ export class ParticipantsService {
     async submitParticipation(
         participantIdParam: string,
         body: SubmitParticipationRequestDto,
-        authUser: SupabaseUser | undefined,
-        cookieHeader: string | undefined,
+        authUser?: SupabaseUser,
+        cookieHeader?: string,
     ): Promise<ParticipantStatusResponseDto> {
         const participantId = this.parseParticipantId(participantIdParam);
         const blockedSlots = this.normalizeBlockedSlots(body);

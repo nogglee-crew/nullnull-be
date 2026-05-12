@@ -22,6 +22,11 @@ type PlaceOrigin = Point & {
 
 @Injectable()
 export class RoomPlaceCandidateService {
+    private readonly MAX_CANDIDATES = 3; // 최종 반환할 장소 후보 수
+    private readonly INITIAL_RADIUS = 3000; // 초기 검색 반경 (미터)
+    private readonly EXTENDED_RADIUS = 10000; // 확장 검색 반경 (미터)
+    private readonly SEARCH_SIZE = 15; // Kakao Local API 한 번 호출당 반환할 결과 수
+
     // 제출된 출발지들을 바탕으로 중간 지점을 계산하고, 그 좌표 주변의 장소 후보를 만든다.
     // 장소 후보는 RoomCategory에 맞는 Kakao Local 검색 결과를 사용하며,
     // 각 장소별로 모든 참여자 출발지까지의 거리 합계를 계산해 이후 정렬/노출에 활용한다.
@@ -47,7 +52,7 @@ export class RoomPlaceCandidateService {
             );
         }
 
-        return places.slice(0, 3).map((place, index) => {
+        return places.slice(0, this.MAX_CANDIDATES).map((place, index) => {
             const latitude = Number(place.y);
             const longitude = Number(place.x);
 
@@ -90,10 +95,10 @@ export class RoomPlaceCandidateService {
             query,
             categoryGroupCode,
             midpoint,
-            radius: 3000,
+            radius: this.INITIAL_RADIUS,
         });
 
-        if (documents.length >= 3) {
+        if (documents.length >= this.MAX_CANDIDATES) {
             return documents;
         }
 
@@ -102,7 +107,7 @@ export class RoomPlaceCandidateService {
             query,
             categoryGroupCode,
             midpoint,
-            radius: 10000,
+            radius: this.EXTENDED_RADIUS,
         });
     }
 
@@ -120,7 +125,7 @@ export class RoomPlaceCandidateService {
             x: String(params.midpoint.longitude),
             y: String(params.midpoint.latitude),
             radius: String(params.radius),
-            size: '15',
+            size: String(this.SEARCH_SIZE),
             sort: 'distance',
         });
 

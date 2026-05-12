@@ -31,6 +31,7 @@ import {
     ApiSubmitParticipationErrorResponses,
 } from '../../swagger/participant.swagger.js';
 import { type OptionalAuthenticatedRequest } from '../../common/type/auth-request.interface.js';
+import type { Response } from 'express';
 
 @ApiTags('참여자(Participants)')
 @ApiBearerAuth('accessToken')
@@ -65,7 +66,7 @@ export class ParticipantsController {
         @Req() req: OptionalAuthenticatedRequest,
         @Headers('cookie') cookie: string | undefined,
         @Body() body: JoinParticipantRequestDto,
-        @Res({ passthrough: true }) response: any,
+        @Res({ passthrough: true }) response: Response,
     ): Promise<CustomResponse<JoinParticipantResponseDto>> {
         const result = await this.participantsService.joinRoom(roomId, body, req.authUser, cookie);
 

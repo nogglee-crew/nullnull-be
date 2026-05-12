@@ -1,8 +1,5 @@
 import { Injectable, HttpStatus, Inject } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
-import { TimeUtil } from '../../common/utils/time.util.js';
-import { AppException } from '../../common/exception/app.exception.js';
-import { ErrorCode } from '../../common/exception/error-codes.js';
 import {
     RoomStatus,
     ParticipantStatus,
