@@ -14,6 +14,9 @@ import { CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
 import { ReadRoomCandidatesResponseDto } from './dto/res/read-room-candidates.response.dto.js';
 import { RoomPlaceCandidateService } from './room-place-candidate.service.js';
 import { RoomRepository } from './room.repository.js';
+import { AppException } from '../../common/exception/app.exception.js';
+import { ErrorCode } from '../../common/exception/error-codes.js';
+import { TimeUtil } from '../../common/utils/time.util.js';
 import dayjs from 'dayjs';
 
 @Injectable()
