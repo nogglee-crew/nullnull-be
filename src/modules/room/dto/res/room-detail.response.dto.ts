@@ -19,6 +19,7 @@ export class RoomDetailResponseDto {
 
     @ApiProperty({ description: '방 기본 정보' })
     room: {
+        roomId: number;
         slug: string;
         name: string;
         description: string | null;
