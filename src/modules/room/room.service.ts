@@ -1,8 +1,5 @@
 import { Injectable, HttpStatus, Inject } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
-import { TimeUtil } from '../../common/utils/time.util.js';
-import { AppException } from '../../common/exception/app.exception.js';
-import { ErrorCode } from '../../common/exception/error-codes.js';
 import {
     RoomStatus,
     ParticipantStatus,
@@ -17,7 +14,6 @@ import { CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
 import { ReadRoomCandidatesResponseDto } from './dto/res/read-room-candidates.response.dto.js';
 import { AppException } from '../../common/exception/app.exception.js';
 import { ErrorCode } from '../../common/exception/error-codes.js';
-import { ParticipantRole, RoomStatus } from '../../generated/prisma/enums.js';
 import { TimeUtil } from '../../common/utils/time.util.js';
 import { RoomPlaceCandidateService } from './room-place-candidate.service.js';
 import { RoomRepository } from './room.repository.js';
