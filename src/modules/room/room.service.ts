@@ -1,8 +1,5 @@
 import { Injectable, HttpStatus, Inject } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
-import { TimeUtil } from '../../common/utils/time.util.js';
-import { AppException } from '../../common/exception/app.exception.js';
-import { ErrorCode } from '../../common/exception/error-codes.js';
 import {
     RoomStatus,
     ParticipantStatus,
@@ -11,8 +8,13 @@ import {
 } from '../../generated/prisma/enums.js';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
+import { ConfirmRoomRequestDto } from './dto/req/confirm-room.request.dto.js';
 import { CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
 import { CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
+import { ReadRoomCandidatesResponseDto } from './dto/res/read-room-candidates.response.dto.js';
+import { AppException } from '../../common/exception/app.exception.js';
+import { ErrorCode } from '../../common/exception/error-codes.js';
+import { TimeUtil } from '../../common/utils/time.util.js';
 import { RoomPlaceCandidateService } from './room-place-candidate.service.js';
 import { RoomRepository } from './room.repository.js';
 import dayjs from 'dayjs';
@@ -466,8 +468,183 @@ export class RoomService {
         }
     }
 
+    // READY 상태의 방에서 선택한 후보 FK를 검증한 뒤 meeting을 생성하고 room을 CONFIRMED로 전이한다.
+    async confirmRoom(
+        roomId: bigint,
+        requesterId: string,
+        body: ConfirmRoomRequestDto,
+    ): Promise<void> {
+        const room = await this.roomRepository.findRoomForConfirm(roomId);
+
+        if (!room) {
+            throw new AppException(
+                HttpStatus.NOT_FOUND,
+                '존재하지 않는 방입니다.',
+                ErrorCode.ROOM_NOT_FOUND,
+            );
+        }
+
+        if (room.hostId !== requesterId) {
+            throw new AppException(
+                HttpStatus.FORBIDDEN,
+                '약속 확정 권한이 없습니다.',
+                ErrorCode.FORBIDDEN,
+            );
+        }
+
+        if (room.status !== RoomStatus.READY) {
+            throw new AppException(
+                HttpStatus.CONFLICT,
+                '확정할 수 없는 방 상태입니다.',
+                ErrorCode.INVALID_ROOM_STATUS,
+            );
+        }
+
+        const timeOptionId = BigInt(body.timeCandidateId);
+
+        // place 후보가 없는 방은 null로 확정할 수 있어야 하므로, body 값이 없으면 nullable FK로 정규화한다.
+        const placeOptionId =
+            body.placeCandidateId === undefined || body.placeCandidateId === null
+                ? null
+                : BigInt(body.placeCandidateId);
+
+        // 선택한 time 후보가 현재 room의 저장된 후보 집합에 실제로 속하는지 확인한다.
+        const hasTimeCandidate = room.timeOptions.some((o) => o.timeOptionId === timeOptionId);
+
+        if (!hasTimeCandidate) {
+            throw new AppException(
+                HttpStatus.BAD_REQUEST,
+                '유효하지 않은 후보입니다.',
+                ErrorCode.INVALID_CANDIDATE,
+            );
+        }
+
+        // place 후보가 있는 방은 반드시 그 room에 속한 후보 id 중 하나를 선택해야 한다.
+        const hasPlaceCandidate = room.placeOptions.some((o) => o.placeOptionId === placeOptionId);
+        if (!hasPlaceCandidate) {
+            throw new AppException(
+                HttpStatus.BAD_REQUEST,
+                '유효하지 않은 후보입니다.',
+                ErrorCode.INVALID_CANDIDATE,
+            );
+        }
+
+        try {
+            await this.roomRepository.withTransaction(async (tx) => {
+                const updatedRoom = await this.roomRepository.markRoomConfirmed(
+                    tx,
+                    roomId,
+                    requesterId,
+                );
+
+                if (updatedRoom.count !== 1) {
+                    throw new AppException(
+                        HttpStatus.CONFLICT,
+                        '확정할 수 없는 방 상태입니다.',
+                        ErrorCode.INVALID_ROOM_STATUS,
+                    );
+                }
+
+                await this.roomRepository.createMeeting(tx, {
+                    roomId,
+                    timeOptionId,
+                    placeOptionId,
+                });
+            });
+        } catch (error) {
+            if (error instanceof AppException) throw error;
+            throw new AppException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                '약속 확정 중 오류가 발생했습니다.',
+                ErrorCode.INTERNAL_SERVER_ERROR,
+            );
+        }
+    }
+
+    // READY 상태의 방에서 이미 생성된 시간/장소 후보를 rank 순으로 조회한다.
+    async readRoomCandidates(
+        roomId: bigint,
+        requesterId: string,
+    ): Promise<ReadRoomCandidatesResponseDto> {
+        const room = await this.roomRepository.findRoomForCandidates(roomId);
+
+        if (!room) {
+            throw new AppException(
+                HttpStatus.NOT_FOUND,
+                '존재하지 않는 방입니다.',
+                ErrorCode.ROOM_NOT_FOUND,
+            );
+        }
+
+        if (room.hostId !== requesterId) {
+            throw new AppException(
+                HttpStatus.FORBIDDEN,
+                '후보 조회 권한이 없습니다.',
+                ErrorCode.FORBIDDEN,
+            );
+        }
+
+        if (room.status !== RoomStatus.READY) {
+            throw new AppException(
+                HttpStatus.CONFLICT,
+                '후보를 조회할 수 없는 방 상태입니다.',
+                ErrorCode.INVALID_ROOM_STATUS,
+            );
+        }
+
+        return {
+            submittedParticipantCount: room.participants.length,
+            timeCandidates: room.timeOptions.map((candidate) => ({
+                id: Number(candidate.timeOptionId),
+                date: TimeUtil.startOfKstDate(candidate.date).format('YYYY-MM-DD'),
+                startAt: this.formatStoredTime(candidate.startAt),
+                endAt: this.formatStoredTime(candidate.endAt),
+                availableCount: candidate.availableCount,
+                durationMinutes: candidate.durationMinutes,
+                rank: candidate.rank,
+                unavailableParticipants: this.findUnavailableParticipants(room, candidate),
+            })),
+            placeCandidates: room.collectOrigin
+                ? room.placeOptions.map((candidate) => ({
+                      id: Number(candidate.placeOptionId),
+                      name: candidate.placeName,
+                      address: candidate.address,
+                      latitude: Number(candidate.latitude),
+                      longitude: Number(candidate.longitude),
+                      rank: candidate.rank,
+                  }))
+                : [],
+        };
+    }
+
+    // 시간 후보 구간과 겹치는 blocked slot이 있는 참여자만 골라 불가자 목록으로 만든다.
+    private findUnavailableParticipants(
+        room: NonNullable<Awaited<ReturnType<RoomRepository['findRoomForCandidates']>>>,
+        candidate: NonNullable<
+            Awaited<ReturnType<RoomRepository['findRoomForCandidates']>>
+        >['timeOptions'][number],
+    ) {
+        const candidateDate = TimeUtil.startOfKstDate(candidate.date).format('YYYY-MM-DD');
+        const startSlotIndex = TimeUtil.timeToSlotIndex(this.formatStoredTime(candidate.startAt));
+        const endSlotIndex = TimeUtil.timeToSlotIndex(this.formatStoredTime(candidate.endAt));
+
+        return room.participants
+            .filter((p) =>
+                p.blockedSlots.some((bs) => {
+                    const blockedDate = TimeUtil.startOfKstDate(bs.date).format('YYYY-MM-DD');
+
+                    return (
+                        blockedDate === candidateDate &&
+                        bs.slotIndex >= startSlotIndex &&
+                        bs.slotIndex < endSlotIndex
+                    );
+                }),
+            )
+            .map((p) => ({ participantId: Number(p.participantId), nickname: p.nickname }));
+    }
+
     // 방의 날짜/요일/시간 범위를 훑어 시간 후보를 만들고, 그중 상위 3개만 최종 후보로 남긴다.
-    // 먼저 (date, slotIndex)별 blocked count를 만든 뒤 날짜를 하루씩 순회하면서
+    // 먼저 (date, slotIndex)별 blocked participant 집합을 만든 뒤 날짜를 하루씩 순회하면서
     // 각 날짜의 연속 가능 구간을 후보로 수집하고, 마지막에 인원 수/길이/시작 시각 기준으로 정렬한다.
     private buildTimeCandidates(
         room: NonNullable<Awaited<ReturnType<RoomRepository['findRoomForReady']>>>,
@@ -475,7 +652,11 @@ export class RoomService {
         const availableDays = this.parseAvailableDays(room.availableDays);
         const startSlotIndex = TimeUtil.timeToSlotIndex(this.formatStoredTime(room.timeStart));
         const endSlotIndex = TimeUtil.timeToSlotIndex(this.formatStoredTime(room.timeEnd));
-        const blockedCountMap = this.buildBlockedCountMap(room, startSlotIndex, endSlotIndex);
+        const blockedParticipantMap = this.buildBlockedParticipantMap(
+            room,
+            startSlotIndex,
+            endSlotIndex,
+        );
         const submittedCount = room.participants.length;
         const candidates: Array<{
             date: Date;
@@ -497,7 +678,7 @@ export class RoomService {
                         startSlotIndex,
                         endSlotIndex,
                         submittedCount,
-                        blockedCountMap,
+                        blockedParticipantMap,
                     ),
                 );
             }
@@ -506,55 +687,52 @@ export class RoomService {
         }
 
         return candidates
-            .sort((left, right) => {
+            .sort((a, b) => {
                 // 더 많은 사람이 가능한 후보를 우선하고, 같으면 더 긴 구간,
                 // 그것도 같으면 더 이른 시각을 우선한다.
-                if (right.availableCount !== left.availableCount) {
-                    return right.availableCount - left.availableCount;
-                }
+                if (b.availableCount !== a.availableCount)
+                    return b.availableCount - a.availableCount;
+                if (b.durationMinutes !== a.durationMinutes)
+                    return b.durationMinutes - a.durationMinutes;
 
-                if (right.durationMinutes !== left.durationMinutes) {
-                    return right.durationMinutes - left.durationMinutes;
-                }
-
-                return left.startAt.getTime() - right.startAt.getTime();
+                return a.startAt.getTime() - b.startAt.getTime();
             })
             .slice(0, 3)
-            .map((candidate, index) => ({
-                ...candidate,
-                rank: index + 1,
-            }));
+            .map((candidate, index) => ({ ...candidate, rank: index + 1 }));
     }
 
-    // 제출된 모든 blocked slot을 훑어 (date, slotIndex)별로 몇 명이 해당 슬롯을 막았는지 집계
-    private buildBlockedCountMap(
+    // 제출된 모든 blocked slot을 훑어 (date, slotIndex)별로 누가 해당 슬롯을 막았는지 집계한다.
+    // 단순 count만 저장하면 "가능 인원 수는 같지만 실제 가능한 사람이 다른 슬롯"을 같은 후보로 묶는 문제가 생긴다.
+    private buildBlockedParticipantMap(
         room: NonNullable<Awaited<ReturnType<RoomRepository['findRoomForReady']>>>,
         startSlotIndex: number,
         endSlotIndex: number,
-    ): Map<string, number> {
-        const blockedCountMap = new Map<string, number>();
+    ): Map<string, Set<number>> {
+        const blockedParticipantMap = new Map<string, Set<number>>();
 
-        for (const participant of room.participants) {
+        for (const [participantIndex, participant] of room.participants.entries()) {
             for (const blockedSlot of participant.blockedSlots) {
                 if (blockedSlot.slotIndex < startSlotIndex || blockedSlot.slotIndex >= endSlotIndex)
                     continue;
 
                 const key = `${TimeUtil.startOfKstDate(blockedSlot.date).format('YYYY-MM-DD')}:${blockedSlot.slotIndex}`;
-                blockedCountMap.set(key, (blockedCountMap.get(key) ?? 0) + 1);
+                const blockedParticipants = blockedParticipantMap.get(key) ?? new Set<number>();
+                blockedParticipants.add(participantIndex);
+                blockedParticipantMap.set(key, blockedParticipants);
             }
         }
-        return blockedCountMap;
+        return blockedParticipantMap;
     }
 
     // 하루 단위로 가능한 슬롯을 훑어 연속 구간 후보를 생성
-    // 같은 availableCount가 유지되는 동안은 하나의 시간 후보로 합치고,
-    // 인원 수가 바뀌거나 0명이 되는 지점에서 후보를 끊는다.
+    // 같은 availableCount뿐 아니라 "실제로 가능한 참여자 집합"이 유지되는 동안만 하나의 시간 후보로 합친다.
+    // 인원 수가 바뀌거나, 불가자 조합이 달라지거나, 0명이 되는 지점에서 후보를 끊는다.
     private buildCandidatesForDate(
         date: dayjs.Dayjs,
         startSlotIndex: number,
         endSlotIndex: number,
         submittedCount: number,
-        blockedCountMap: Map<string, number>,
+        blockedParticipantMap: Map<string, Set<number>>,
     ) {
         const candidates: Array<{
             date: Date;
@@ -565,10 +743,13 @@ export class RoomService {
         }> = [];
         let intervalStartIndex: number | null = null;
         let intervalAvailableCount: number | null = null;
+        let intervalAvailabilitySignature: string | null = null;
 
         for (let slotIndex = startSlotIndex; slotIndex < endSlotIndex; slotIndex += 1) {
             const key = `${date.format('YYYY-MM-DD')}:${slotIndex}`;
-            const availableCount = submittedCount - (blockedCountMap.get(key) ?? 0);
+            const blockedParticipants = blockedParticipantMap.get(key) ?? new Set<number>();
+            const availableCount = submittedCount - blockedParticipants.size;
+            const availabilitySignature = [...blockedParticipants].sort((a, b) => a - b).join(',');
 
             // 이 슬롯에 가능한 사람이 없으면 현재까지 쌓은 연속 구간을 마감하고 다음 후보를 새로 찾기
             if (availableCount <= 0) {
@@ -581,6 +762,7 @@ export class RoomService {
                 );
                 intervalStartIndex = null;
                 intervalAvailableCount = null;
+                intervalAvailabilitySignature = null;
                 continue;
             }
 
@@ -588,11 +770,15 @@ export class RoomService {
             if (intervalStartIndex === null) {
                 intervalStartIndex = slotIndex;
                 intervalAvailableCount = availableCount;
+                intervalAvailabilitySignature = availabilitySignature;
                 continue;
             }
 
-            // 같은 연속 구간 안에서도 가능한 인원 수가 바뀌면 별도 후보로 분리
-            if (intervalAvailableCount !== availableCount) {
+            // 같은 연속 구간 안에서도 가능한 인원 수나 가능한 참여자 조합이 바뀌면 별도 후보로 분리
+            if (
+                intervalAvailableCount !== availableCount ||
+                intervalAvailabilitySignature !== availabilitySignature
+            ) {
                 this.pushTimeCandidate(
                     candidates,
                     date,
@@ -602,9 +788,9 @@ export class RoomService {
                 );
                 intervalStartIndex = slotIndex;
                 intervalAvailableCount = availableCount;
+                intervalAvailabilitySignature = availabilitySignature;
             }
         }
-
         this.pushTimeCandidate(
             candidates,
             date,

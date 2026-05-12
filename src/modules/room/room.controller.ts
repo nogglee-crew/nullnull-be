@@ -14,10 +14,11 @@ import {
     Headers,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-
 import { RoomService } from './room.service.js';
+import { ConfirmRoomRequestDto } from './dto/req/confirm-room.request.dto.js';
 import { CreateRoomRequestDto } from './dto/req/create-room.request.dto.js';
 import { CreateRoomResponseDto } from './dto/res/create-room.response.dto.js';
+import { ReadRoomCandidatesResponseDto } from './dto/res/read-room-candidates.response.dto.js';
 import CustomResponse from '../../common/response/custom-response.js';
 import { SuccessResponseInterceptor } from '../../common/interceptor/success-response.interceptor.js';
 import { HttpExceptionFilter } from '../../common/filters/http-exception.filter.js';
@@ -27,8 +28,11 @@ import { RoomDetailResponseDto } from './dto/res/room-detail.response.dto.js';
 import { OptionalJwtAuthGuard } from '../auth/guard/optional-jwt-auth.guard.js';
 import { type AuthenticatedRequest } from '../../common/type/auth-request.interface.js';
 import {
+    ApiConfirmRoomErrorResponses,
+    ApiReadRoomCandidatesErrorResponses,
     ApiReadyRoomErrorResponses,
     ApiReadyRoomSuccessResponse,
+    ApiConfirmRoomSuccessResponse,
 } from '../../swagger/room.swagger.js';
 import { ParseBigIntPipe } from '../../common/type/parse-bigint.pipe.js';
 
@@ -94,5 +98,48 @@ export class RoomController {
         await this.roomService.readyRoom(roomId, req.authUser.id);
 
         return new CustomResponse<null>(null, '방이 마감되었습니다.');
+    }
+
+    @ApiOperation({
+        summary: '확정 후보 조회 API',
+        description: '방장이 READY 상태의 방에서 시간/장소 후보를 조회합니다.',
+    })
+    @ApiCustomResponseDecorator(ReadRoomCandidatesResponseDto, {
+        message: '확정 후보 조회에 성공했습니다.',
+        path: '/rooms/1/candidates',
+    })
+    @ApiReadRoomCandidatesErrorResponses()
+    @HttpCode(HttpStatus.OK)
+    @UseGuards(JwtAuthGuard)
+    @Get('/:roomId/candidates')
+    async readRoomCandidates(
+        @Param('roomId', ParseBigIntPipe) roomId: bigint,
+        @Req() req: AuthenticatedRequest,
+    ): Promise<CustomResponse<ReadRoomCandidatesResponseDto>> {
+        const result = await this.roomService.readRoomCandidates(roomId, req.authUser.id);
+
+        return new CustomResponse<ReadRoomCandidatesResponseDto>(
+            result,
+            '확정 후보 조회에 성공했습니다.',
+        );
+    }
+
+    @ApiOperation({
+        summary: '방 확정 API',
+        description: '방장이 READY 상태의 방에서 시간/장소 후보를 선택해 약속을 확정합니다.',
+    })
+    @ApiConfirmRoomSuccessResponse()
+    @ApiConfirmRoomErrorResponses()
+    @HttpCode(HttpStatus.OK)
+    @UseGuards(JwtAuthGuard)
+    @Post('/:roomId/confirm')
+    async confirmRoom(
+        @Param('roomId', ParseBigIntPipe) roomId: bigint,
+        @Body() body: ConfirmRoomRequestDto,
+        @Req() req: AuthenticatedRequest,
+    ): Promise<CustomResponse<null>> {
+        await this.roomService.confirmRoom(roomId, req.authUser.id, body);
+
+        return new CustomResponse<null>(null, '약속이 확정되었습니다.');
     }
 }
