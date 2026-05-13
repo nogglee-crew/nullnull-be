@@ -235,6 +235,7 @@ export class ParticipantsService {
                 if (body.origin) {
                     await this.participantsRepository.upsertOrigin(tx, participant.participantId, {
                         address: body.origin.address,
+                        placeName: body.origin.placeName,
                         lat: body.origin.lat,
                         lng: body.origin.lng,
                     });
