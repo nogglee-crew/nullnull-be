@@ -233,40 +233,18 @@ export class RoomService {
                     hostNickname: room.host.nickname,
                     badge,
                     text,
-                    dateStart: TimeUtil.formatKst(room.dateStart, 'YYYY-MM-DD'),
-                    dateEnd: TimeUtil.formatKst(room.dateEnd, 'YYYY-MM-DD'),
+                    dateStart: room.dateStart.toISOString().split('T')[0],
+                    dateEnd: room.dateEnd.toISOString().split('T')[0],
                     availableDays: room.availableDays as number[],
-                    timeStart: TimeUtil.formatKst(room.timeStart, 'HH:mm'),
-                    timeEnd: TimeUtil.formatKst(room.timeEnd, 'HH:mm'),
+                    timeStart: room.timeStart.toISOString().split('T')[1].substring(0, 5),
+                    timeEnd: room.timeEnd.toISOString().split('T')[1].substring(0, 5),
                     collectOrigin: room.collectOrigin,
-                    deadlineAt: TimeUtil.formatKst(room.deadlineAt),
+                    deadlineAt: room.deadlineAt.toISOString(),
                 },
                 summary: this.calculateSummary(room.participants),
-                participants: {
-                    submitted: room.participants
-                        .filter((p) => p.status === ParticipantStatus.SUBMITTED)
-                        .map((p) => p.nickname),
-                    declined: room.participants
-                        .filter((p) => p.status === ParticipantStatus.DECLINED)
-                        .map((p) => p.nickname),
-                    joined: room.participants
-                        .filter((p) => p.status === ParticipantStatus.JOINED)
-                        .map((p) => p.nickname),
-                },
-                // 참여자 정보 (GUEST라면 null)
-                mySubmission: myParticipant
-                    ? {
-                          nickname: myParticipant.nickname,
-                          status: myParticipant.status,
-                          blockedSlots: myParticipant.blockedSlots.map((s: any) => ({
-                              date: TimeUtil.formatKst(s.date, 'YYYY-MM-DD'),
-                              slotIndex: s.slotIndex,
-                          })),
-                          origin: myParticipant.origin
-                              ? { address: myParticipant.origin.address }
-                              : null,
-                      }
-                    : null,
+                participants: this.groupParticipantsByStatus(room.participants),
+                mySubmission: this.mapMySubmission(myParticipant),
+
                 // 확정 정보 (CONFIRMED 상태가 아니면 null)
                 confirmedMeeting:
                     room.status === RoomStatus.CONFIRMED && room.meeting
@@ -333,16 +311,38 @@ export class RoomService {
         return true;
     }
 
+    // 위치 정보 매핑
+    private mapMySubmission(participant: any) {
+        return {
+            nickname: participant.nickname,
+            status: participant.status,
+            blockedSlots: participant.blockedSlots.map((s: any) => ({
+                date: s.date.toISOString().split('T')[0],
+                slotIndex: s.slotIndex,
+            })),
+            // 출발지 정보 상세화
+            origin: participant.origin
+                ? {
+                      address: participant.origin.address,
+                      // Decimal 타입을 숫자로 변환 (지도 라이브러리 연동용)
+                      lat: Number(participant.origin.latitude),
+                      lng: Number(participant.origin.longitude),
+                      placeName: participant.origin.placeName,
+                  }
+                : null,
+        };
+    }
+
     // 방 상태 및 역할에 따른 화면 표시 정보
     private resolveRoomDisplay(status: RoomStatus, role: string, deadlineAt: Date) {
         // 1. 모집중 (COLLECTING)
         if (status === RoomStatus.COLLECTING) {
-            // 날짜 포맷
-            const formattedDeadline = TimeUtil.formatKst(deadlineAt, 'M월 D일');
+            const month = deadlineAt.getUTCMonth() + 1;
+            const day = deadlineAt.getUTCDate();
 
             return {
                 badge: '모집중',
-                text: `${formattedDeadline} 모집이 마감돼요`,
+                text: `${month}월 ${day}일 모집이 마감돼요`,
             };
         }
 
@@ -386,6 +386,22 @@ export class RoomService {
             submittedRatio: ratio,
         };
     }
+
+    // 참여자 정보
+    private groupParticipantsByStatus(participants: any[]) {
+        return {
+            submitted: participants
+                .filter((p) => p.status === ParticipantStatus.SUBMITTED)
+                .map((p) => p.nickname),
+            declined: participants
+                .filter((p) => p.status === ParticipantStatus.DECLINED)
+                .map((p) => p.nickname),
+            joined: participants
+                .filter((p) => p.status === ParticipantStatus.JOINED)
+                .map((p) => p.nickname),
+        };
+    }
+
     // 방장을 검증한 뒤 제출 데이터를 바탕으로 시간/장소 후보를 생성하고 방을 READY로 전이한다.
     async readyRoom(roomId: bigint, requesterId: string): Promise<void> {
         const room = await this.roomRepository.findRoomForReady(roomId);

@@ -58,7 +58,7 @@ export class RoomDetailResponseDto {
         nickname: string;
         status: ParticipantStatus;
         blockedSlots: { date: string; slotIndex: number }[];
-        origin: { address: string } | null;
+        origin: { address: string; lat: number; lng: number; placeName: string | null } | null;
     } | null;
 
     @ApiProperty({ description: '확정된 약속 정보 (확정 전이면 null)' })
