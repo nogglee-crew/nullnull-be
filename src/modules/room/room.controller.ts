@@ -35,6 +35,7 @@ import {
     ApiConfirmRoomSuccessResponse,
 } from '../../swagger/room.swagger.js';
 import { ParseBigIntPipe } from '../../common/type/parse-bigint.pipe.js';
+import { CookieUtil } from '../../common/utils/cookie.util.js';
 
 @ApiTags('방(Room)')
 @ApiBearerAuth('accessToken')
@@ -75,9 +76,14 @@ export class RoomController {
     async getRoomDetail(
         @Param('slug') slug: string,
         @Req() req: AuthenticatedRequest,
-        @Headers('cookie') cookie: string | undefined,
+        @Headers('cookie') cookieHader: string | undefined,
     ): Promise<CustomResponse<RoomDetailResponseDto>> {
-        const result = await this.roomService.getRoomDetail(slug, req.authUser, cookie);
+        const participantUuid = CookieUtil.getCookie(
+            cookieHader,
+            CookieUtil.getParticipantCookieKey(slug),
+        );
+
+        const result = await this.roomService.getRoomDetail(slug, req.authUser, participantUuid);
 
         return new CustomResponse<RoomDetailResponseDto>(result, '방 조회에 성공했습니다.');
     }
