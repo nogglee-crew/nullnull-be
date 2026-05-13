@@ -117,18 +117,20 @@ export class ParticipantsRepository {
     upsertOrigin(
         tx: ParticipantsTransactionClient,
         participantId: bigint,
-        origin: { address: string; lat: number; lng: number },
+        origin: { address: string; placeName?: string; lat: number; lng: number },
     ) {
         return tx.origin.upsert({
             where: { participantId },
             update: {
                 address: origin.address,
+                placeName: origin.placeName,
                 latitude: origin.lat,
                 longitude: origin.lng,
             },
             create: {
                 participantId,
                 address: origin.address,
+                placeName: origin.placeName,
                 latitude: origin.lat,
                 longitude: origin.lng,
             },

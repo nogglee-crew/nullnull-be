@@ -8,7 +8,7 @@ import {
     IsString,
     ValidateNested,
 } from 'class-validator';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 class BlockedSlotInputDto {
     @ApiProperty({ example: '2026-05-01' })
@@ -26,6 +26,11 @@ class OriginInputDto {
     @ApiProperty({ example: '서울 강남구 강남대로 396' })
     @IsString({ message: '주소가 유효하지 않습니다.' })
     address: string;
+
+    @ApiPropertyOptional({ example: '강남역 11번 출구' })
+    @IsOptional()
+    @IsString({ message: '장소명이 유효하지 않습니다.' })
+    placeName?: string;
 
     @ApiProperty({ example: 37.4979 })
     @Type(() => Number)
