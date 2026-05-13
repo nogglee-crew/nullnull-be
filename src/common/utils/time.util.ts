@@ -20,18 +20,18 @@ export const TimeUtil = {
      * 입력받은 날짜를 KST 기준 Dayjs 객체로 변환
      */
     toDayjsKst(date: string | Date | number) {
-        return dayjs(date).tz(KST_TIMEZONE);
+        return dayjs.tz(date, KST_TIMEZONE);
     },
 
     /**
      * KST 기준으로 날짜 포맷팅
      */
     formatKst(date: Date | string | number, format = 'YYYY-MM-DDTHH:mm:ss.SSSZ'): string {
-        return dayjs(date).tz(KST_TIMEZONE).format(format);
+        return dayjs.tz(date, KST_TIMEZONE).format(format);
     },
 
     startOfKstDate(date: string | Date) {
-        return dayjs(date).tz(KST_TIMEZONE).startOf('day');
+        return dayjs.tz(date, KST_TIMEZONE).startOf('day');
     },
 
     /**

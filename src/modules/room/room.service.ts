@@ -137,7 +137,7 @@ export class RoomService {
         }
     }
 
-    // 방 상세 정보 로직
+    // 방 상세 조회 로직
     async getRoomDetail(slug: string, authUser?: SupabaseUser, participantUuid?: string) {
         // 1. 400 Error
         if (!slug || slug.trim().length === 0) {
@@ -179,18 +179,30 @@ export class RoomService {
             let viewerRole: 'HOST' | 'MEMBER' | 'GUEST' = 'GUEST';
             let myParticipant: any = null;
 
-            if (authUser && room.hostId === authUser.id) {
-                viewerRole = 'HOST';
-                myParticipant = room.participants.find((p) => p.userId === authUser.id) || null;
-            } else {
-                const found = room.participants.find(
-                    (p) =>
-                        (authUser && p.userId === authUser.id) ||
-                        (participantUuid && p.participantUuid === participantUuid),
+            if (authUser) {
+                if (room.hostId === authUser.id) {
+                    viewerRole = 'HOST';
+                    myParticipant = room.participants.find((p) => p.userId === authUser.id);
+                } else {
+                    // 방장은 아닌데, 회원 참여자
+                    const foundMember = room.participants.find((p) => p.userId === authUser.id);
+
+                    if (foundMember) {
+                        viewerRole = 'MEMBER';
+                        myParticipant = foundMember;
+                    }
+                }
+            }
+
+            // 로그인 안 했거나 위에서 못 찾은 경우 UUID로 비회원 참여자 확인
+            if (viewerRole === 'GUEST' && participantUuid) {
+                const foundGuest = room.participants.find(
+                    (p) => p.participantUuid === participantUuid,
                 );
-                if (found) {
-                    myParticipant = found;
+
+                if (foundGuest) {
                     viewerRole = 'MEMBER';
+                    myParticipant = foundGuest;
                 }
             }
 
