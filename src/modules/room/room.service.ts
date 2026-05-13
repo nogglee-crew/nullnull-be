@@ -243,7 +243,7 @@ export class RoomService {
                 },
                 summary: this.calculateSummary(room.participants),
                 participants: this.groupParticipantsByStatus(room.participants),
-                mySubmission: this.mapMySubmission(myParticipant),
+                mySubmission: myParticipant ? this.mapMySubmission(myParticipant) : null,
 
                 // 확정 정보 (CONFIRMED 상태가 아니면 null)
                 confirmedMeeting:
@@ -313,6 +313,7 @@ export class RoomService {
 
     // 위치 정보 매핑
     private mapMySubmission(participant: any) {
+        if (!participant) return null;
         return {
             nickname: participant.nickname,
             status: participant.status,
