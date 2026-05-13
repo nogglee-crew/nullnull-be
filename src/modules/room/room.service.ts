@@ -502,12 +502,6 @@ export class RoomService {
 
         const timeOptionId = BigInt(body.timeCandidateId);
 
-        // place 후보가 없는 방은 null로 확정할 수 있어야 하므로, body 값이 없으면 nullable FK로 정규화한다.
-        const placeOptionId =
-            body.placeCandidateId === undefined || body.placeCandidateId === null
-                ? null
-                : BigInt(body.placeCandidateId);
-
         // 선택한 time 후보가 현재 room의 저장된 후보 집합에 실제로 속하는지 확인한다.
         const hasTimeCandidate = room.timeOptions.some((o) => o.timeOptionId === timeOptionId);
 
@@ -519,14 +513,33 @@ export class RoomService {
             );
         }
 
-        // place 후보가 있는 방은 반드시 그 room에 속한 후보 id 중 하나를 선택해야 한다.
-        const hasPlaceCandidate = room.placeOptions.some((o) => o.placeOptionId === placeOptionId);
-        if (!hasPlaceCandidate) {
-            throw new AppException(
-                HttpStatus.BAD_REQUEST,
-                '유효하지 않은 후보입니다.',
-                ErrorCode.INVALID_CANDIDATE,
+        // place 후보가 없는 방은 null로 확정할 수 있어야 하므로, body 값이 없으면 nullable FK로 정규화한다.
+        const placeOptionId =
+            body.placeCandidateId === undefined || body.placeCandidateId === null
+                ? null
+                : BigInt(body.placeCandidateId);
+
+        if (placeOptionId === null) {
+            // 출발지 수집이 없는 방은 place 후보가 생성되지 않으므로, 값이 없을 때만 정상 요청으로 본다.
+            if (room.placeOptions.length > 0) {
+                throw new AppException(
+                    HttpStatus.BAD_REQUEST,
+                    '유효하지 않은 후보입니다.',
+                    ErrorCode.INVALID_CANDIDATE,
+                );
+            }
+        } else {
+            // place 후보가 있는 방은 반드시 그 room에 속한 후보 id 중 하나를 선택해야 한다.
+            const hasPlaceCandidate = room.placeOptions.some(
+                (o) => o.placeOptionId === placeOptionId,
             );
+            if (!hasPlaceCandidate) {
+                throw new AppException(
+                    HttpStatus.BAD_REQUEST,
+                    '유효하지 않은 후보입니다.',
+                    ErrorCode.INVALID_CANDIDATE,
+                );
+            }
         }
 
         try {
