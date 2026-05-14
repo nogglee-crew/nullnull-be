@@ -251,7 +251,7 @@ export class RoomService {
                 confirmedMeeting:
                     room.status === RoomStatus.CONFIRMED && room.meeting
                         ? {
-                              startAt: TimeUtil.formatKst(room.meeting.timeOption.startAt),
+                              startAt: `${room.meeting.timeOption.date.toISOString().split('T')[0]}T${room.meeting.timeOption.startAt.toISOString().split('T')[1].substring(0, 5)}`,
                               endAt: TimeUtil.formatKst(room.meeting.timeOption.endAt),
                               place: room.meeting.placeOption
                                   ? {
