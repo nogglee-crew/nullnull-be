@@ -34,6 +34,8 @@ import {
     ApiReadyRoomSuccessResponse,
     ApiConfirmRoomSuccessResponse,
     ApiGetMyRoomsErrorResponses,
+    ApiCloseRoomSuccessResponse,
+    ApiCloseRoomErrorResponses,
 } from '../../swagger/room.swagger.js';
 import { ParseBigIntPipe } from '../../common/type/parse-bigint.pipe.js';
 import { CookieUtil } from '../../common/utils/cookie.util.js';
@@ -127,6 +129,39 @@ export class RoomController {
     }
 
     @ApiOperation({
+        summary: '방 확정 API',
+        description: '방장이 READY 상태의 방에서 시간/장소 후보를 선택해 약속을 확정합니다.',
+    })
+    @ApiConfirmRoomSuccessResponse()
+    @ApiConfirmRoomErrorResponses()
+    @HttpCode(HttpStatus.OK)
+    @UseGuards(JwtAuthGuard)
+    @Post('/:roomId/confirm')
+    async confirmRoom(
+        @Param('roomId', ParseBigIntPipe) roomId: bigint,
+        @Body() body: ConfirmRoomRequestDto,
+        @Req() req: AuthenticatedRequest,
+    ): Promise<CustomResponse<null>> {
+        await this.roomService.confirmRoom(roomId, req.authUser.id, body);
+
+        return new CustomResponse<null>(null, '약속이 확정되었습니다.');
+    }
+
+    @ApiOperation({ summary: '방 수동 종료 API' })
+    @ApiCloseRoomSuccessResponse()
+    @ApiCloseRoomErrorResponses()
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    @Post('/:roomId/close')
+    async closeRoom(
+        @Param('roomId', ParseBigIntPipe) roomId: bigint,
+        @Req() req: AuthenticatedRequest,
+    ): Promise<CustomResponse<null>> {
+        await this.roomService.closeRoom(roomId, req.authUser.id);
+        return new CustomResponse(null, '방이 종료되었습니다.');
+    }
+
+    @ApiOperation({
         summary: '확정 후보 조회 API',
         description: '방장이 READY 상태의 방에서 시간/장소 후보를 조회합니다.',
     })
@@ -148,24 +183,5 @@ export class RoomController {
             result,
             '확정 후보 조회에 성공했습니다.',
         );
-    }
-
-    @ApiOperation({
-        summary: '방 확정 API',
-        description: '방장이 READY 상태의 방에서 시간/장소 후보를 선택해 약속을 확정합니다.',
-    })
-    @ApiConfirmRoomSuccessResponse()
-    @ApiConfirmRoomErrorResponses()
-    @HttpCode(HttpStatus.OK)
-    @UseGuards(JwtAuthGuard)
-    @Post('/:roomId/confirm')
-    async confirmRoom(
-        @Param('roomId', ParseBigIntPipe) roomId: bigint,
-        @Body() body: ConfirmRoomRequestDto,
-        @Req() req: AuthenticatedRequest,
-    ): Promise<CustomResponse<null>> {
-        await this.roomService.confirmRoom(roomId, req.authUser.id, body);
-
-        return new CustomResponse<null>(null, '약속이 확정되었습니다.');
     }
 }

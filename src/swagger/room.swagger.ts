@@ -316,3 +316,43 @@ export function ApiGetMyRoomsErrorResponses() {
         }),
     );
 }
+
+export function ApiCloseRoomSuccessResponse() {
+    return ApiOkResponse({
+        schema: {
+            example: {
+                statusCode: 200,
+                timestamp: '2026-04-28T00:00:00.000Z',
+                path: '/rooms/1/close',
+                message: '방이 종료되었습니다.',
+                data: null,
+                error: null,
+            },
+        },
+    });
+}
+
+export function ApiCloseRoomErrorResponses() {
+    return applyDecorators(
+        ApiUnauthorizedResponse({
+            description: '로그인 필요',
+            schema: { example: { error: 'UNAUTHORIZED' } },
+        }),
+        ApiForbiddenResponse({
+            description: '방장 권한 없음',
+            schema: { example: { error: 'FORBIDDEN' } },
+        }),
+        ApiNotFoundResponse({
+            description: '방을 찾을 수 없음',
+            schema: { example: { error: 'ROOM_NOT_FOUND' } },
+        }),
+        ApiConflictResponse({
+            description: '이미 종료된 방',
+            schema: { example: { error: 'ROOM_ALREADY_CLOSED' } },
+        }),
+        ApiInternalServerErrorResponse({
+            description: '서버 오류',
+            schema: { example: { error: 'INTERNAL_SERVER_ERROR' } },
+        }),
+    );
+}
