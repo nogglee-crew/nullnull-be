@@ -1,10 +1,12 @@
-import { Injectable, HttpStatus, Inject } from '@nestjs/common';
+import { HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service.js';
 import {
-    RoomStatus,
+    ClosedFromStatus,
+    ClosedTrigger,
+    ParticipantRole,
     ParticipantStatus,
     PolicyType,
-    ParticipantRole,
+    RoomStatus,
 } from '../../generated/prisma/enums.js';
 import { type User as SupabaseUser } from '@supabase/supabase-js';
 import { nanoid } from 'nanoid';
@@ -969,6 +971,70 @@ export class RoomService {
                 HttpStatus.NOT_FOUND,
                 '방 목록을 가져오는 중 오류가 발생했습니다.',
                 ErrorCode.ROOM_NOT_FOUND,
+            );
+        }
+    }
+
+    // 방 수동 종료 로직
+    async closeRoom(roomId: bigint, hostId: string): Promise<void> {
+        // 1. 방 조회
+        const room = await this.prisma.room.findUnique({
+            where: {
+                roomId,
+            },
+        });
+
+        // 2. 예외 처리
+        if (!room) {
+            throw new AppException(
+                HttpStatus.NOT_FOUND,
+                '존재하지 않는 방입니다.',
+                ErrorCode.ROOM_NOT_FOUND,
+            );
+        }
+
+        if (room.hostId !== hostId) {
+            throw new AppException(
+                HttpStatus.FORBIDDEN,
+                '방 종료 권한이 없습니다.',
+                ErrorCode.FORBIDDEN,
+            );
+        }
+
+        if (room.status === RoomStatus.CLOSED) {
+            throw new AppException(
+                HttpStatus.CONFLICT,
+                '이미 종료된 방입니다.',
+                ErrorCode.ROOM_ALREADY_CLOSED,
+            );
+        }
+
+        try {
+            await this.prisma.$transaction(async (tx) => {
+                await tx.room.update({
+                    where: {
+                        roomId: room.roomId,
+                    },
+                    data: {
+                        status: RoomStatus.CLOSED,
+                    },
+                });
+
+                await tx.closure.create({
+                    data: {
+                        roomId: room.roomId,
+                        closedFromStatus: room.status as unknown as ClosedFromStatus,
+                        closedTrigger: ClosedTrigger.MANUAL,
+                        closedAt: new Date(),
+                    },
+                });
+            });
+        } catch (error) {
+            if (error instanceof AppException) throw error;
+            throw new AppException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                '방 종료 중 오류가 발생했습니다.',
+                ErrorCode.INTERNAL_SERVER_ERROR,
             );
         }
     }
