@@ -294,3 +294,25 @@ export function ApiConfirmRoomErrorResponses() {
         }),
     );
 }
+
+export const MY_ROOMS_UNAUTHORIZED = {
+    statusCode: 401,
+    timestamp: '2026-04-28T00:00:00.000Z',
+    path: '/rooms',
+    message: '로그인이 필요합니다.',
+    data: null,
+    error: 'UNAUTHORIZED',
+};
+
+export function ApiGetMyRoomsErrorResponses() {
+    return applyDecorators(
+        ApiUnauthorizedResponse({
+            description: '로그인 필요',
+            schema: { example: MY_ROOMS_UNAUTHORIZED },
+        }),
+        ApiInternalServerErrorResponse({
+            description: '서버 오류',
+            schema: { example: ROOM_CANDIDATES_INTERNAL_SERVER_ERROR },
+        }),
+    );
+}

@@ -18,6 +18,7 @@ import { AppException } from '../../common/exception/app.exception.js';
 import { ErrorCode } from '../../common/exception/error-codes.js';
 import { TimeUtil } from '../../common/utils/time.util.js';
 import dayjs from 'dayjs';
+import { RoomListResponseDto } from './dto/res/room-list.response.dto.js';
 
 @Injectable()
 export class RoomService {
@@ -887,5 +888,88 @@ export class RoomService {
         const minutes = String(time.getUTCMinutes()).padStart(2, '0');
 
         return `${hours}:${minutes}`;
+    }
+
+    // 모든 방 목록 조회
+    async getMyRooms(userId: string): Promise<RoomListResponseDto> {
+        try {
+            // 1. 내가 방장이거나, 참여자 명단에 내가 포함된 방 조회
+            const rooms = await this.prisma.room.findMany({
+                where: {
+                    OR: [
+                        { hostId: userId },
+                        {
+                            participants: {
+                                some: {
+                                    userId: userId,
+                                },
+                            },
+                        },
+                    ],
+                },
+                include: {
+                    host: true,
+                    participants: true,
+                    meeting: {
+                        include: {
+                            timeOption: true,
+                            placeOption: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    createdAt: 'desc',
+                },
+            });
+
+            // 2. 데이터 가공
+            const roomList = rooms.map((room) => {
+                const totalParticipants = room.participants.length;
+                const submittedParticipants = room.participants.filter(
+                    (p) => p.status === ParticipantStatus.SUBMITTED,
+                ).length;
+
+                const ratio =
+                    totalParticipants > 0
+                        ? Math.round((submittedParticipants / totalParticipants) * 100)
+                        : 0;
+
+                return {
+                    roomId: Number(room.roomId),
+                    slug: room.slug,
+                    name: room.name,
+                    category: room.category,
+                    status: room.status,
+                    myRole: room.hostId === userId ? ('HOST' as const) : ('MEMBER' as const),
+                    hostNickname: room.host.nickname,
+                    participantCount: totalParticipants,
+                    submittedCount: submittedParticipants,
+                    submittedRatio: ratio,
+                    confirmedMeeting:
+                        room.status === RoomStatus.CONFIRMED && room.meeting
+                            ? {
+                                  startAt: room.meeting.timeOption.startAt.toISOString(),
+                                  placeName: room.meeting.placeOption?.placeName ?? null,
+                              }
+                            : null,
+                    dateStart: room.dateStart.toISOString().split('T')[0],
+                    dateEnd: room.dateEnd.toISOString().split('T')[0],
+                    deadlineAt: room.deadlineAt.toISOString(),
+                    createdAt: room.createdAt.toISOString(),
+                };
+            });
+
+            return {
+                totalCount: roomList.length,
+                rooms: roomList,
+            };
+        } catch (error) {
+            if (error instanceof AppException) throw error;
+            throw new AppException(
+                HttpStatus.NOT_FOUND,
+                '방 목록을 가져오는 중 오류가 발생했습니다.',
+                ErrorCode.ROOM_NOT_FOUND,
+            );
+        }
     }
 }

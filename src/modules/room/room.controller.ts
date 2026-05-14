@@ -33,9 +33,11 @@ import {
     ApiReadyRoomErrorResponses,
     ApiReadyRoomSuccessResponse,
     ApiConfirmRoomSuccessResponse,
+    ApiGetMyRoomsErrorResponses,
 } from '../../swagger/room.swagger.js';
 import { ParseBigIntPipe } from '../../common/type/parse-bigint.pipe.js';
 import { CookieUtil } from '../../common/utils/cookie.util.js';
+import { RoomListResponseDto } from './dto/res/room-list.response.dto.js';
 
 @ApiTags('방(Room)')
 @ApiBearerAuth('accessToken')
@@ -62,6 +64,24 @@ export class RoomController {
         const result = await this.roomService.createRoom(hostId, body);
 
         return new CustomResponse<CreateRoomResponseDto>(result, '방이 생성되었습니다.');
+    }
+
+    @ApiOperation({
+        summary: '나의 방 목록 전체 조회 API',
+        description: '내가 방장이거나 참여자로 등록된 모든 방의 목록 조회',
+    })
+    @ApiCustomResponseDecorator(RoomListResponseDto)
+    @ApiGetMyRoomsErrorResponses()
+    @ApiBearerAuth('accessToken')
+    @UseGuards(JwtAuthGuard)
+    @HttpCode(HttpStatus.OK)
+    @Get()
+    async getMyRooms(
+        @Req() req: AuthenticatedRequest,
+    ): Promise<CustomResponse<RoomListResponseDto>> {
+        const result = await this.roomService.getMyRooms(req.authUser.id);
+
+        return new CustomResponse<RoomListResponseDto>(result, '방 목록 조회에 성공했습니다.');
     }
 
     @ApiOperation({
