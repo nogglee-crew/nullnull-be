@@ -5,11 +5,10 @@ import { AuthService } from './auth.service.js';
 import { PrismaModule } from '../../database/prisma.module.js';
 import { JwtAuthGuard } from './guard/jwt-auth.guard.js';
 import { OptionalJwtAuthGuard } from './guard/optional-jwt-auth.guard.js';
-import { MypageController } from '../mypage/mypage.controller.js';
 
 @Module({
     imports: [PrismaModule],
-    controllers: [AuthController, MypageController],
+    controllers: [AuthController],
     providers: [AuthRepository, AuthService, JwtAuthGuard, OptionalJwtAuthGuard],
     exports: [AuthRepository, AuthService, JwtAuthGuard, OptionalJwtAuthGuard],
 })

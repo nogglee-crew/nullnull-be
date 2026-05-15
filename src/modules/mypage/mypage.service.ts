@@ -4,7 +4,7 @@ import { ErrorCode } from '../../common/exception/error-codes.js';
 import { AppException } from '../../common/exception/app.exception.js';
 import { UserStatus } from '../../generated/prisma/enums.js';
 import { AuthRepository } from '../auth/auth.repository.js';
-import { User } from 'src/generated/prisma/client.js';
+import { User } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class MypageService {
