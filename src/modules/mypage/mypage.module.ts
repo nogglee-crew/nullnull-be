@@ -7,6 +7,5 @@ import { MypageService } from './mypage.service.js';
     imports: [AuthModule],
     controllers: [MypageController],
     providers: [MypageService],
-    exports: [MypageService],
 })
 export class MypageModule {}
