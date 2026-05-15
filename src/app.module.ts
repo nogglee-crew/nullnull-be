@@ -6,6 +6,7 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { PrismaModule } from './database/prisma.module.js';
 import { ParticipantsModule } from './modules/participants/participants.module.js';
 import { RoomModule } from './modules/room/room.module.js';
+import { MypageModule } from './modules/mypage/mypage.module.js';
 
 @Module({
     imports: [
@@ -16,6 +17,7 @@ import { RoomModule } from './modules/room/room.module.js';
         PrismaModule,
         ParticipantsModule,
         RoomModule,
+        MypageModule,
     ],
     controllers: [AppController],
     providers: [AppService],

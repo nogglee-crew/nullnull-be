@@ -9,4 +9,4 @@ import { MypageService } from './mypage.service.js';
     providers: [MypageService],
     exports: [MypageService],
 })
-export class RoomModule {}
+export class MypageModule {}
