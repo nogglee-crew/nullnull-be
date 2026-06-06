@@ -11,7 +11,7 @@ export const AUTH_SYNC_INTERNAL_SERVER_ERROR = {
     statusCode: 500,
     timestamp: '2026-03-18T06:51:15.442Z',
     path: '/auth/sync',
-    message: '사용자 동기화 중 오류가 발생했습니다.',
+    message: '사용자 동기화 중 오류가 발생했습니다.  ',
     data: null,
     error: 'INTERNAL_SERVER_ERROR',
 };
