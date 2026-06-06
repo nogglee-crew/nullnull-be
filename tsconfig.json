@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
-        "module": "nodenext",
-        "moduleResolution": "nodenext",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
         "resolvePackageJsonExports": true,
         "esModuleInterop": true,
         "isolatedModules": true,
@@ -12,24 +12,27 @@
         "allowSyntheticDefaultImports": true,
         "target": "ES2023",
         "sourceMap": true,
-        "outDir": "./dist",
+        "rootDir": "src",
+        "outDir": "dist",
         "baseUrl": "./",
+        "types": ["node"],
+        "ignoreDeprecations": "6.0",
         "incremental": true,
         "skipLibCheck": true,
         "strictNullChecks": true,
         "forceConsistentCasingInFileNames": true,
         "noImplicitAny": false,
         "strictBindCallApply": false,
-        "noFallthroughCasesInSwitch": false
+        "noFallthroughCasesInSwitch": false,
+        "strictPropertyInitialization": false
     },
-    "include": [
-        "src/**/*.ts",
-        "services/**/*.ts",
-        "services/**/*.cts",
-        "services/**/*.mts",
-        "packages/**/*.ts",
-        "packages/**/*.cts",
-        "packages/**/*.mts",
+    "include": ["src/**/*.ts"],
+    "exclude": [
+        "node_modules",
+        "test",
+        "dist",
+        "**/*spec.ts",
+        "prisma.config.ts",
         "eslint.config.js"
     ]
 }

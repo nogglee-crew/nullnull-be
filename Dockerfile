@@ -16,6 +16,7 @@ RUN pnpm install --frozen-lockfile
 COPY nest-cli.json tsconfig.json tsconfig.build.json ./
 COPY src ./src
 
+RUN pnpm prisma generate --schema prisma
 RUN pnpm build
 
 EXPOSE 4000
